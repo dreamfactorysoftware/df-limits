@@ -1,0 +1,35 @@
+{
+  "name": "dreamfactory/df-limits",
+  "description": "Limts configuration package for DreamFactory.",
+  "keywords": [
+    "dreamfactory",
+    "limits"
+  ],
+  "homepage": "https://www.dreamfactory.com/",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "Charles Harmon",
+      "email": "charlesharmon@dreamfactory.com"
+    }
+  ],
+  "support": {
+    "email": "support@dreamfactory.com",
+    "source": "https://github.com/dreamfactorysoftware/df-limits",
+    "issues": "https://github.com/dreamfactorysoftware/df-limits/issues",
+    "wiki": "https://wiki.dreamfactory.com"
+  },
+  "require": {
+    "dreamfactory/df-core": "~0.6.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "DreamFactory\\Core\\Limits\\": "src/"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-develop": "0.6.x-dev"
+    }
+  }
+}
