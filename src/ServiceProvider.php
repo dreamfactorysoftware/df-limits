@@ -5,6 +5,7 @@ use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Resources\System\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
+use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,16 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                     'label'       => 'API limits Management',
                     'description' => 'Allows limits capability.',
                     'class_name'  => LimitsResource::class,
+                    'singleton'   => false,
+                    'read_only'   => false
+                ])
+            );
+            $df->addType(
+                new SystemResourceType([
+                    'name'        => 'limit_Cache',
+                    'label'       => 'API limits Cache Management',
+                    'description' => 'Allows for clearing and resetting Limit cache.',
+                    'class_name'  => LimitCache::class,
                     'singleton'   => false,
                     'read_only'   => false
                 ])

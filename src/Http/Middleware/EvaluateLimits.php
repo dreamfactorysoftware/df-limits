@@ -7,6 +7,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Cache\RateLimiter;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\App;
 use Illuminate\Support\Facades\Cache;
 
@@ -35,8 +36,7 @@ class EvaluateLimits {
      */
     public function __construct(RateLimiter $limiter)
     {
-        $repository = app('cache')->store('limit');
-        $this->limiter = new RateLimiter($repository);
+        $this->limiter = new RateLimiter(app('cache')->store('limit'));
     }
 
 
@@ -54,7 +54,8 @@ class EvaluateLimits {
         $roleId  = Session::getRoleId();
 
         //$appId   = App::getAppIdByApiKey(Session::getApiKey());
-        $service = $request->route()->getParameter('service');
+
+        $service = Service::where('name', $request->route()->getParameter('service'))->first();
 
         $limits = Limit::where('active_ind', 1)->get();
         $overLimit = [];
@@ -62,9 +63,9 @@ class EvaluateLimits {
         foreach($limits as $limit){
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->limit_type, $limit->user_id, $limit->role_id, $limit->service_name, $limit->limit_period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->limit_type, $limit->user_id, $limit->role_id, $limit->service_id, $limit->limit_period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->limit_type, $userId, $roleId, $service, $limit->limit_period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->limit_type, $userId, $roleId, $service->id, $limit->limit_period);
 
             if($checkKey == $derivedKey){
                 if($this->limiter->tooManyAttempts($checkKey, $limit->limit_rate, Limit::$limitIntervals[$limit->limit_period])){
