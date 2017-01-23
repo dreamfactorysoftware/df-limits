@@ -33,7 +33,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             );
             $df->addType(
                 new SystemResourceType([
-                    'name'        => 'limit_Cache',
+                    'name'        => 'limit_cache',
                     'label'       => 'API limits Cache Management',
                     'description' => 'Allows for clearing and resetting Limit cache.',
                     'class_name'  => LimitCache::class,

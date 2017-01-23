@@ -89,7 +89,9 @@ class Limit extends BaseSystemResource
         }
     }
 
-
+    /**
+     * Enriches record data with key and hash for DB.
+     */
     protected function enrichRecordData()
     {
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
@@ -98,10 +100,19 @@ class Limit extends BaseSystemResource
         foreach($records as &$record){
             $limit_period_nbr = array_search($record['limit_period'], LimitsModel::$limitPeriods);
             if($this->validateLimitPayload($record)){
+
+                if(strpos($record['limit_type'], 'user') && $record['user_id'] == '*'){
+                    $record['user_id'] = null;
+                }
                 $key = $limit->resolveCheckKey($record['limit_type'], $record['user_id'], $record['role_id'], $record['service_id'], $limit_period_nbr);
                 $keyHash = sha1($key);
                 $record['limit_key_text'] = $key;
                 $record['limit_key_hash'] = $keyHash;
+
+                /* limits are active by default, but in case of deactivation, set the limit inactive */
+                if(isset($record['active']) && $record['active'] == 'false'){
+                    $record['active_ind'] = 0;
+                }
            }
         }
 
@@ -120,7 +131,6 @@ class Limit extends BaseSystemResource
 
         switch ($record['limit_type']) {
             case 'instance':
-            case 'instance.each_user':
                 break;
 
             case 'instance.user':
@@ -129,7 +139,7 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('user_id must be specified with this limit type. Limit: ' . $record['label_text']);
                 }
 
-                if( ! $this->_checkUser($record['user_id'])){
+                if( ! $this->_checkUser($record['user_id']) && $record['user_id'] !== '*'){
                     throw new BadRequestException('user_id does not exist for ' . $record['label_text'] . ' limit.');
                 }
 
@@ -153,7 +163,8 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('user_id must be specified with this limit type. Limit: ' . $record['label_text']);
                 }
 
-                if( ! $this->_checkUser($record['user_id'])){
+
+                if( ! $this->_checkUser($record['user_id']) && $record['user_id'] !== '*'){
                     throw new BadRequestException('No user_id exists for ' . $record['label_text'] . ' limit.');
                 }
 
@@ -167,16 +178,6 @@ class Limit extends BaseSystemResource
 
                 break;
 
-            case 'instance.each_user.service':
-
-                if( ! isset($record['service_name']) || is_null($record['service_name'])){
-                    throw new BadRequestException('service_name must be specified with this limit type.');
-                }
-                if( ! $this->_resolveServiceName($record)){
-                    throw new BadRequestException('No service_name exists for ' . $record['label_text'] . ' limit.');
-                }
-
-                break;
 
             case 'instance.service':
 

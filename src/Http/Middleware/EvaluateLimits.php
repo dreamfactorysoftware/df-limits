@@ -52,6 +52,7 @@ class EvaluateLimits {
         $limitModel = new Limit();
         $userId  = Session::getCurrentUserId();
         $roleId  = Session::getRoleId();
+        $isAdmin = Session::isSysAdmin();
 
         //$appId   = App::getAppIdByApiKey(Session::getApiKey());
 
@@ -61,9 +62,17 @@ class EvaluateLimits {
         $overLimit = [];
 
         foreach($limits as $limit){
+            $db_user = $limit->user_id;
+
+            /* This checks for an "Each User" condition, where the limit would apply to every user
+            /* for this instance or service. The cache key will be based on each user in this case,
+            /* so set the $db_user to the current $userId for matching keys */
+            if(is_null($db_user) && strpos($limit->limit_type, 'user') && !is_null($userId) && !$isAdmin){
+                $db_user = $userId;
+            }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->limit_type, $limit->user_id, $limit->role_id, $limit->service_id, $limit->limit_period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->limit_type, $db_user, $limit->role_id, $limit->service_id, $limit->limit_period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
             $derivedKey = $limitModel->resolveCheckKey($limit->limit_type, $userId, $roleId, $service->id, $limit->limit_period);
 
