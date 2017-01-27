@@ -1,22 +1,14 @@
 <?php
 namespace DreamFactory\Core\Limit\Resources\System;
 
-
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Enums\ApiOptions;
 
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Models\Role;
-use DreamFactory\Core\Models\Service;
-
-
-use Log;
-use ServiceManager;
 
 class LimitCache extends BaseSystemResource
 {
@@ -39,93 +31,85 @@ class LimitCache extends BaseSystemResource
      */
     protected $cache;
 
-
     /**
      * Create a new request throttler.
      *
-     * @param  \Illuminate\Cache\RateLimiter  $limiter
+     * @param  \Illuminate\Cache\RateLimiter $limiter
+     *
      * @return void
      */
     public function __construct()
     {
-        $this->cache   = app('cache')->store('limit');
+        $this->cache = app('cache')->store('limit');
         $this->limiter = new RateLimiter($this->cache);
     }
 
     public function getResources($only_handlers = false)
     {
-
     }
 
     protected function handleGET()
     {
 
-        $limit  = new static::$model;
+        $limit = new static::$model;
         $limits = $limit::where('active_ind', 1)->get();
-        $users  = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
+        $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
 
-        $check_keys = [];
-        foreach($limits as $limit_data) {
+        $checkKeys = [];
+        foreach ($limits as $limitData) {
 
             /* Check for each user condition */
-            $limit_period_nbr = array_search($limit_data->limit_period, LimitsModel::$limitPeriods);
+            $limit_period_nbr = array_search($limitData->limit_period, LimitsModel::$limitPeriods);
 
-            if (strpos($limit_data->limit_type, 'user') && is_null($limit_data->user_id)) {
+            if (strpos($limitData->limit_type, 'user') && is_null($limitData->user_id)) {
 
                 foreach ($users as $user) {
 
                     /* need to generate a key for each user to check */
                     $key = $limit->resolveCheckKey(
-                        $limit_data->limit_type,
+                        $limitData->limit_type,
                         $user->id,
-                        $limit_data->role_id,
-                        $limit_data->service_id,
+                        $limitData->role_id,
+                        $limitData->service_id,
                         $limit_period_nbr
                     );
 
-                    $check_keys[] = [
-                        'name'  => $limit_data->label_text,
-                        'key'   => $key,
-                        'hash'  => sha1($key),
-                        'max'   => $limit_data->limit_rate
+                    $checkKeys[] = [
+                        'name' => $limitData->label_text,
+                        'key'  => $key,
+                        'max'  => $limitData->limit_rate
                     ];
                 }
-
             } else { /* Normal key checks */
 
                 $key = $limit->resolveCheckKey(
-                    $limit_data->limit_type,
-                    $limit_data->user_id,
-                    $limit_data->role_id,
-                    $limit_data->service_id,
+                    $limitData->limit_type,
+                    $limitData->user_id,
+                    $limitData->role_id,
+                    $limitData->service_id,
                     $limit_period_nbr
                 );
 
-                $check_keys[] = [
-                    'name' => $limit_data->label_text,
+                $checkKeys[] = [
+                    'name' => $limitData->label_text,
                     'key'  => $key,
-                    'hash' => sha1($key),
-                    'max'  => $limit_data->limit_rate
+                    'max'  => $limitData->limit_rate
                 ];
             }
-
         }
 
-        foreach($check_keys as &$keyCheck){
-            $keyCheck['attempts']  = $this->limiter->attempts($keyCheck['key']);
+        foreach ($checkKeys as &$keyCheck) {
+            $keyCheck['attempts'] = $this->limiter->attempts($keyCheck['key']);
             $keyCheck['remaining'] = $this->limiter->retriesLeft($keyCheck['key'], $keyCheck['max']);
         }
 
-       return ResourcesWrapper::wrapResources($check_keys);
-
+        return ResourcesWrapper::wrapResources($checkKeys);
     }
-
 
     protected function handleDELETE()
     {
 
-
-       if (!empty($this->resource)) {
+        if (!empty($this->resource)) {
             $result = $this->clearById($this->resource, $this->request->getParameters());
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $this->clearByIds($ids, $this->request->getParameters());
@@ -136,16 +120,15 @@ class LimitCache extends BaseSystemResource
         }
 
         return $result;
-
-
     }
 
-    protected function clearById($id, $params){
-        $limitModel  = new static::$model;
+    protected function clearById($id, $params)
+    {
+        $limitModel = new static::$model;
         $limit = $limitModel::where('id', $id)->get();
-        $users  = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
+        $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
 
-        foreach($limit as $limit_data){
+        foreach ($limit as $limit_data) {
 
             /* Handles clearing for Each User scenario */
             if (strpos($limit_data->limit_type, 'user') && is_null($limit_data->user_id)) {
@@ -159,8 +142,7 @@ class LimitCache extends BaseSystemResource
                         $limit_data->service_id,
                         $limit_data->limit_period
                     );
-                    $this->clearByKey($usrKey);
-
+                    $this->clearKey($usrKey);
                 }
             }
 
@@ -173,48 +155,21 @@ class LimitCache extends BaseSystemResource
                 $limit_data->limit_period
             );
 
-            $this->clearByKey($keyCheck);
+            $this->clearKey($keyCheck);
         }
-
-
     }
 
-    protected function clearByKey($key){
+    protected function clearByIds($ids, $params)
+    {
+    }
+
+    protected function clearKey($key)
+    {
         /* Clears for locked-out conditions */
         $this->limiter->clear($key);
         /* Clears for non-lockout conditions */
         $this->cache->forget($key);
     }
-
-    protected function clearByIds($ids, $params){
-
-        $limit  = new static::$model;
-
-        foreach($ids as $id){
-
-            $limit = $limit::where('id', $id)->first();
-            $limit_period_nbr = array_search($limit->limit_period, LimitsModel::$limitPeriods);
-
-            /* build the key to check */
-            $keyCheck = $limit->resolveCheckKey(
-                $limit->limit_type,
-                $limit->user_id,
-                $limit->role_id,
-                $limit->service_id,
-                $limit_period_nbr
-            );
-
-            /* Clears for locked-out conditions */
-            $this->limiter->clear($keyCheck);
-            /* Clears for non-lockout conditions */
-            $this->cache->forget($keyCheck);
-
-        }
-        return true;
-
-    }
-
-
 
     /*public static function getApiDocInfo($service, array $resource = [])
     {
@@ -278,6 +233,5 @@ class LimitCache extends BaseSystemResource
 
         return ['paths' => $apis, 'definitions' => []];
     }*/
-
 
 }
