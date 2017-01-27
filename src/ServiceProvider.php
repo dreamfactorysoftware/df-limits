@@ -45,17 +45,4 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
          });*/
     }
 
-    /*/**
-     * Add the Limits middleware to the Global Middleware Stack.
-     * @param Request $request
-     * @param Kernel  $kernel
-     */
-    public function boot(Request $request, Kernel $kernel)
-    {
-        /*if ($request->is('api/*'))
-        {
-            $kernel->pushMiddleware('DreamFactory\Core\Limit\Http\Middleware\EvaluateLimits');
-        }*/
-    }
-
 }

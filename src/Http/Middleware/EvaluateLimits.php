@@ -81,7 +81,6 @@ class EvaluateLimits
                 !is_null($userId) &&
                 !in_array($userId, $userOverrides)
             ) {
-
                 $dbUser = $userId;
             }
 
@@ -96,7 +95,10 @@ class EvaluateLimits
                     if ($this->limiter->tooManyAttempts($checkKey, $limit->limit_rate,
                         Limit::$limitIntervals[$limit->limit_period])
                     ) {
-                        $overLimit[$limit->limit_key_text] = $limit->label_text;
+                        $overLimit[] = [
+                            'id'         => $limit->id,
+                            'label_text' => $limit->label_text
+                        ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->limit_period]);
                     }
@@ -105,9 +107,7 @@ class EvaluateLimits
         }
 
         if (!empty($overLimit)) {
-            $response =
-                ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded: ' .
-                    implode(', ', $overLimit)));
+            $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null, $overLimit));
 
             return $this->addHeaders(
                 $response, $limit->limit_rate,
