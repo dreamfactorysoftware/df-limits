@@ -49,7 +49,16 @@ class Limit extends BaseSystemResource
         try {
             $this->enrichRecordData();
 
-            return parent::handlePOST();
+            $response =  parent::handlePOST();
+            $returnData = $response->getContent();
+            if(is_array($returnData['resource'])){
+                foreach($returnData['resource'] as &$return){
+                    if(isset($return['limit_period'])){
+                        $return['limit_period'] = LimitsModel::$limitPeriods[$return['limit_period']];
+                    }
+                }
+            }
+            return $returnData;
         } catch (\Exception $e) {
             $message = $e->getMessage();
             if (preg_match('/Duplicate entry (.*) for key \'limit_key_hash\'/', $message)) {
