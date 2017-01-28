@@ -88,7 +88,8 @@ class Limit extends BaseSystemResource
         foreach ($records as &$record) {
             $limitPeriodNumber = array_search($record['limit_period'], LimitsModel::$limitPeriods);
             if ($this->validateLimitPayload($record)) {
-
+                /* set the resolved limit period number */
+                $record['limit_period'] = $limitPeriodNumber;
                 /* check for an "each user" condition by a *, set it to null, bypassing validation */
                 if (strpos($record['limit_type'], 'user') && $record['user_id'] == '*') {
                     $record['user_id'] = null;
