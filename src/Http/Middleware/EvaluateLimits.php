@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Limit\Http\Middleware;
 
 use DreamFactory\Core\Components\DfResponse;
 use DreamFactory\Core\Limit\Models\Limit;
+use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
@@ -30,9 +31,9 @@ class EvaluateLimits
      *
      * @return void
      */
-    public function __construct(RateLimiter $limiter)
+    public function __construct()
     {
-        $this->limiter = new RateLimiter(app('cache')->store('limit'));
+        $this->limiter = new LimitCache(app('cache')->store('limit'));
     }
 
     /**
