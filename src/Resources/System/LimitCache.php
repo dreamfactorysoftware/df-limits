@@ -49,19 +49,24 @@ class LimitCache extends BaseSystemResource
     {
     }
 
-    protected function handleGET()
+    protected function handleGET($id = null)
     {
-
         $limit = new static::$model;
-        $limits = $limit::where('active_ind', 1)->get();
+
+        /* check if passing a single limit id */
+        if( !empty($this->resource)){
+            $id = $this->resource;
+            $limits = $limit::where('active_ind', 1)->where('id', $id)->get();
+        } else {
+            /* Get all limits */
+            $limits = $limit::where('active_ind', 1)->get();
+        }
         $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
 
         $checkKeys = [];
         foreach ($limits as $limitData) {
 
             /* Check for each user condition */
-            $limit_period_nbr = array_search($limitData->limit_period, LimitsModel::$limitPeriods);
-
             if (strpos($limitData->limit_type, 'user') && is_null($limitData->user_id)) {
 
                 foreach ($users as $user) {
@@ -72,7 +77,7 @@ class LimitCache extends BaseSystemResource
                         $user->id,
                         $limitData->role_id,
                         $limitData->service_id,
-                        $limit_period_nbr
+                        $limitData->limit_period
                     );
 
                     $checkKeys[] = [
@@ -88,7 +93,7 @@ class LimitCache extends BaseSystemResource
                     $limitData->user_id,
                     $limitData->role_id,
                     $limitData->service_id,
-                    $limit_period_nbr
+                    $limitData->limit_period
                 );
 
                 $checkKeys[] = [
