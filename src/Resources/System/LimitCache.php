@@ -5,6 +5,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use DreamFactory\Core\Resources\System\Cache;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -108,7 +109,7 @@ class LimitCache extends BaseSystemResource
 
         foreach ($checkKeys as &$keyCheck) {
             $keyCheck['attempts'] = $this->limiter->attempts($keyCheck['key']);
-            $keyCheck['remaining'] = $this->getRetriesLeft($keyCheck['key'], $keyCheck['max']);
+            $keyCheck['remaining'] = $this->retriesLeft($keyCheck['key'], $keyCheck['max']);
         }
 
         return ResourcesWrapper::wrapResources($checkKeys);
@@ -126,7 +127,7 @@ class LimitCache extends BaseSystemResource
 
     }
 
-    protected function getRetriesLeft($key, $maxAttempts)
+    public function retriesLeft($key, $maxAttempts)
     {
         $attempts = $this->limiter->attempts($key);
         if ($this->cache->has($key.':lockout') || $attempts > $maxAttempts) {
@@ -141,7 +142,11 @@ class LimitCache extends BaseSystemResource
         $params = $this->request->getParameters();
         if(isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)){
             $this->cache->flush();
-            return;
+            $result = [
+                'success' => 'true'
+            ];
+            return ResponseFactory::create($result);
+
         }
 
         if (!empty($this->resource)) {
@@ -154,7 +159,8 @@ class LimitCache extends BaseSystemResource
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
-        return $result;
+        return ResponseFactory::create($result);
+
     }
 
     protected function clearById($id)
@@ -261,10 +267,10 @@ class LimitCache extends BaseSystemResource
             return true;
         }
 
-        if ($this->attempts($key) > $maxAttempts) {
+        if ($this->attempts($key) >= $maxAttempts) {
             $this->cache->add($key.':lockout', time() + ($decayMinutes * 60), $decayMinutes);
 
-            $this->resetAttempts($key);
+            return $this->cache->forget($key);
 
             return true;
         }
