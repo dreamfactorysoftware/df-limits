@@ -28,6 +28,18 @@ class Limit extends BaseSystemResource
     ];
 
     /**
+     * The limiter cache store.
+     *
+     * @var \Illuminate\Cache\
+     */
+    protected $limitCache;
+
+    public function __construct()
+    {
+        $this->limitCache = new LimitCache();
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function handleGET()
@@ -81,7 +93,7 @@ class Limit extends BaseSystemResource
         /* Fire the cache clean up event */
         if(isset($return['resource']) && !empty($return['resource'])){
             foreach($return['resource'] as $clearCache){
-
+                $this->limitCache->clearById($clearCache['id']);
             }
         }
         return $return;

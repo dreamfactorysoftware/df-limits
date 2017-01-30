@@ -108,7 +108,7 @@ class LimitCache extends BaseSystemResource
         }
 
         foreach ($checkKeys as &$keyCheck) {
-            $keyCheck['attempts'] = $this->limiter->attempts($keyCheck['key']);
+            $keyCheck['attempts'] = $this->getAttempts($keyCheck['key'], $keyCheck['max']);
             $keyCheck['remaining'] = $this->retriesLeft($keyCheck['key'], $keyCheck['max']);
         }
 
@@ -163,7 +163,7 @@ class LimitCache extends BaseSystemResource
 
     }
 
-    protected function clearById($id)
+    public function clearById($id)
     {
         $limitModel = new static::$model;
         $limitData = $limitModel::where('id', $id)->get();
