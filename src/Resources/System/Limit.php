@@ -49,7 +49,9 @@ class Limit extends BaseSystemResource
                 $resourceLimit['limit_period'] = $this->resolveLimitPeriod($resourceLimit['limit_period']);
             }
         } else {
-            $response['limit_period'] = $this->resolveLimitPeriod($response['limit_period']);
+            if(isset($response['limit_period']) && !empty($response['limit_period'])){
+                $response['limit_period'] = $this->resolveLimitPeriod($response['limit_period']);
+            }
         }
 
         return $response;
@@ -146,10 +148,13 @@ class Limit extends BaseSystemResource
                 if (strpos($record['limit_type'], 'user') && $record['user_id'] == '*') {
                     $record['user_id'] = null;
                 }
-                $key =
-                    $limit->resolveCheckKey($record['limit_type'], $record['user_id'], $record['role_id'],
-                        $record['service_id'], $limitPeriodNumber);
+                $key = $limit->resolveCheckKey($record['limit_type'], $record['user_id'], $record['role_id'], $record['service_id'], $limitPeriodNumber);
                 $record['limit_key_text'] = $key;
+
+                /* If record_label is not set, set it to name */
+                if(!isset($record['label']) || is_null($record['label'])){
+                    $record['label'] = $record['name'];
+                }
 
                 /* limits are active by default, but in case of deactivation, set the limit inactive */
                 if (isset($record['active']) && !filter_var($record['active'], FILTER_VALIDATE_BOOLEAN)) {
@@ -178,11 +183,11 @@ class Limit extends BaseSystemResource
 
                 if (!isset($record['user_id']) || is_null($record['user_id'])) {
                     throw new BadRequestException('user_id must be specified with this limit type. Limit: ' .
-                        $record['label_text']);
+                        $record['name']);
                 }
 
                 if (!$this->checkUser($record['user_id']) && $record['user_id'] !== '*') {
-                    throw new BadRequestException('user_id does not exist for ' . $record['label_text'] . ' limit.');
+                    throw new BadRequestException('user_id does not exist for ' . $record['name'] . ' limit.');
                 }
 
                 break;
@@ -191,11 +196,11 @@ class Limit extends BaseSystemResource
 
                 if (!isset($record['role_id']) || is_null($record['role_id'])) {
                     throw new BadRequestException('role_id must be specified with this limit type. Limit: ' .
-                        $record['label_text']);
+                        $record['name']);
                 }
 
                 if (!$this->checkRole($record['role_id'])) {
-                    throw new BadRequestException('No role_id exists for ' . $record['label_text'] . ' limit.');
+                    throw new BadRequestException('No role_id exists for ' . $record['name'] . ' limit.');
                 }
 
                 break;
@@ -204,20 +209,20 @@ class Limit extends BaseSystemResource
 
                 if (!isset($record['user_id']) || is_null($record['user_id'])) {
                     throw new BadRequestException('user_id must be specified with this limit type. Limit: ' .
-                        $record['label_text']);
+                        $record['name']);
                 }
 
                 if (!$this->checkUser($record['user_id']) && $record['user_id'] !== '*') {
-                    throw new BadRequestException('No user_id exists for ' . $record['label_text'] . ' limit.');
+                    throw new BadRequestException('No user_id exists for ' . $record['name'] . ' limit.');
                 }
 
                 if (!isset($record['service_name']) || is_null($record['service_name'])) {
                     throw new BadRequestException('service_name must be specified with this limit type. Limit: ' .
-                        $record['label_text']);
+                        $record['name']);
                 }
 
                 if (!$this->resolveServiceName($record)) {
-                    throw new BadRequestException('No service_name exists for ' . $record['label_text'] . ' limit.');
+                    throw new BadRequestException('No service_name exists for ' . $record['name'] . ' limit.');
                 }
 
                 break;
@@ -229,7 +234,7 @@ class Limit extends BaseSystemResource
                 }
 
                 if (!$this->resolveServiceName($record)) {
-                    throw new BadRequestException('No service_name exists for ' . $record['label_text'] . ' limit.');
+                    throw new BadRequestException('No service_name exists for ' . $record['name'] . ' limit.');
                 }
 
                 break;

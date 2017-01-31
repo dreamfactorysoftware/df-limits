@@ -85,7 +85,7 @@ class LimitCache extends BaseSystemResource
 
                     $checkKeys[] = [
                         'limit_id' => $limitData->id,
-                        'name' => $limitData->label_text,
+                        'name' => $limitData->name,
                         'key'  => $key,
                         'max'  => $limitData->limit_rate
                     ];
@@ -102,7 +102,7 @@ class LimitCache extends BaseSystemResource
 
                 $checkKeys[] = [
                     'limit_id' => $limitData->id,
-                    'name' => $limitData->label_text,
+                    'name' => $limitData->name,
                     'key'  => $key,
                     'max'  => $limitData->limit_rate
                 ];
@@ -145,7 +145,7 @@ class LimitCache extends BaseSystemResource
         if(isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)){
             $this->cache->flush();
             $result = [
-                'success' => 'true'
+                'success' => true
             ];
             return ResponseFactory::create($result);
 

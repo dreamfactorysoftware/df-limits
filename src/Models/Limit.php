@@ -29,7 +29,7 @@ class Limit extends BaseSystemModel
         'limit_type'   => 'required',
         'limit_rate'   => 'required',
         'limit_period' => 'required',
-        'label_text'   => 'required'
+        'name'         => 'required'
     ];
 
     public static $limitIntervals = [
@@ -53,7 +53,8 @@ class Limit extends BaseSystemModel
         'user_id',
         'role_id',
         'service_id',
-        'label_text',
+        'name',
+        'label',
         'limit_period',
         'limit_key_hash',
         'limit_key_text',

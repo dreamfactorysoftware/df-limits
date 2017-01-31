@@ -24,7 +24,8 @@ class CreateLimitsTable extends Migration
                 $t->mediumInteger('user_id')->nullable();
                 $t->mediumInteger('role_id')->nullable();
                 $t->mediumInteger('service_id')->nullable();
-                $t->string('label_text');
+                $t->string('name');
+                $t->string('label')->nullable();
                 $t->tinyInteger('active_ind')->default(1);
                 $t->timestamp('created_date')->nullable();
                 $t->timestamp('last_modified_date')->nullable();
