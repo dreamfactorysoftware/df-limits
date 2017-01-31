@@ -84,6 +84,7 @@ class LimitCache extends BaseSystemResource
                     );
 
                     $checkKeys[] = [
+                        'limit_id' => $limitData->id,
                         'name' => $limitData->label_text,
                         'key'  => $key,
                         'max'  => $limitData->limit_rate
@@ -100,6 +101,7 @@ class LimitCache extends BaseSystemResource
                 );
 
                 $checkKeys[] = [
+                    'limit_id' => $limitData->id,
                     'name' => $limitData->label_text,
                     'key'  => $key,
                     'max'  => $limitData->limit_rate
