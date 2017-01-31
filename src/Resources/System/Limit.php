@@ -31,11 +31,11 @@ class Limit extends BaseSystemResource
      *
      * @var \Illuminate\Cache\
      */
-    protected $limitCache;
+    protected $cache;
 
     public function __construct()
     {
-        $this->limitCache = new LimitCache();
+        $this->cache = new LimitCache();
     }
 
     /**
@@ -46,11 +46,11 @@ class Limit extends BaseSystemResource
         $response = parent::handleGET();
         if (isset($response['resource']) && !empty($response['resource'])) {
             foreach ($response['resource'] as &$resourceLimit) {
-                $resourceLimit['limit_period'] = $this->resolveLimitPeriod($resourceLimit['limit_period']);
+                $resourceLimit['period'] = $this->resolveLimitPeriod($resourceLimit['period']);
             }
         } else {
-            if(isset($response['limit_period']) && !empty($response['limit_period'])){
-                $response['limit_period'] = $this->resolveLimitPeriod($response['limit_period']);
+            if(isset($response['period']) && !empty($response['period'])){
+                $response['period'] = $this->resolveLimitPeriod($response['period']);
             }
         }
 
@@ -81,7 +81,7 @@ class Limit extends BaseSystemResource
             if (is_array($returnData['resource'])) {
                 foreach ($returnData['resource'] as &$return) {
                     if (isset($return['limit_period'])) {
-                        $return['limit_period'] = LimitsModel::$limitPeriods[$return['limit_period']];
+                        $return['period'] = LimitsModel::$limitPeriods[$return['period']];
                     }
                 }
             }
@@ -89,7 +89,7 @@ class Limit extends BaseSystemResource
             return $returnData;
         } catch (\Exception $e) {
             $message = $e->getMessage();
-            if (preg_match('/Duplicate entry (.*) for key \'limit_key_hash\'/', $message)) {
+            if (preg_match('/Duplicate entry (.*) for key \'key_text\'/', $message)) {
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, $e);
             }
             throw new BadRequestException('An error occurred when inserting Limits: ' . $message);
@@ -106,7 +106,7 @@ class Limit extends BaseSystemResource
         /* Fire the cache clean up event */
         if (isset($return['resource']) && !empty($return['resource'])) {
             foreach ($return['resource'] as $clearCache) {
-                $this->limitCache->clearById($clearCache['id']);
+                $this->cache->clearById($clearCache['id']);
             }
         }
 
@@ -120,11 +120,11 @@ class Limit extends BaseSystemResource
     {
         try {
             $this->enrichRecordData();
-
             return parent::handlePATCH();
+
         } catch (\Exception $e) {
             $message = $e->getMessage();
-            if (preg_match('/Duplicate entry (.*) for key \'limit_key_hash\'/', $message)) {
+            if (preg_match('/Duplicate entry (.*) for key \'key_text\'/', $message)) {
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, $e);
             }
             throw new BadRequestException('An error occurred when inserting Limits: ' . $message);
@@ -140,16 +140,16 @@ class Limit extends BaseSystemResource
         $limit = new static::$model;
 
         foreach ($records as &$record) {
-            $limitPeriodNumber = array_search($record['limit_period'], LimitsModel::$limitPeriods);
+            $limitPeriodNumber = array_search($record['period'], LimitsModel::$limitPeriods);
             if ($this->validateLimitPayload($record)) {
                 /* set the resolved limit period number */
-                $record['limit_period'] = $limitPeriodNumber;
+                $record['period'] = $limitPeriodNumber;
                 /* check for an "each user" condition by a *, set it to null, bypassing validation */
-                if (strpos($record['limit_type'], 'user') && $record['user_id'] == '*') {
+                if (strpos($record['type'], 'user') && $record['user_id'] == '*') {
                     $record['user_id'] = null;
                 }
-                $key = $limit->resolveCheckKey($record['limit_type'], $record['user_id'], $record['role_id'], $record['service_id'], $limitPeriodNumber);
-                $record['limit_key_text'] = $key;
+                $key = $limit->resolveCheckKey($record['type'], $record['user_id'], $record['role_id'], $record['service_id'], $limitPeriodNumber);
+                $record['key_text'] = $key;
 
                 /* If record_label is not set, set it to name */
                 if(!isset($record['label']) || is_null($record['label'])){
@@ -175,7 +175,7 @@ class Limit extends BaseSystemResource
         /* Default service id enriched value - will get set from name if exists in database in _resolveServiceName(). */
         $record['service_id'] = null;
 
-        switch ($record['limit_type']) {
+        switch ($record['type']) {
             case 'instance':
                 break;
 

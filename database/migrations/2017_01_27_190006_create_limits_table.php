@@ -17,10 +17,10 @@ class CreateLimitsTable extends Migration
             'limits',
             function (Blueprint $t){
                 $t->bigIncrements('id')->unsigned();
-                $t->string('limit_type', 50);
-                $t->string('limit_key_text')->unique();
-                $t->integer('limit_rate');
-                $t->integer('limit_period');
+                $t->string('type', 50);
+                $t->string('key_text')->unique();
+                $t->integer('rate');
+                $t->integer('period');
                 $t->mediumInteger('user_id')->nullable();
                 $t->mediumInteger('role_id')->nullable();
                 $t->mediumInteger('service_id')->nullable();

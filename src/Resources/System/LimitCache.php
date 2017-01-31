@@ -48,10 +48,6 @@ class LimitCache extends BaseSystemResource
         $this->limiter = new RateLimiter($this->cache);
     }
 
-    public function getResources($only_handlers = false)
-    {
-    }
-
     protected function handleGET($id = null)
     {
         $limit = new static::$model;
@@ -70,22 +66,21 @@ class LimitCache extends BaseSystemResource
         foreach ($limits as $limitData) {
 
             /* Check for each user condition */
-            if (strpos($limitData->limit_type, 'user') && is_null($limitData->user_id)) {
+            if (strpos($limitData->type, 'user') && is_null($limitData->user_id)) {
 
                 foreach ($users as $user) {
 
                     /* need to generate a key for each user to check */
                     $key = $limit->resolveCheckKey(
-                        $limitData->limit_type,
+                        $limitData->type,
                         $user->id,
                         $limitData->role_id,
                         $limitData->service_id,
-                        $limitData->limit_period
+                        $limitData->period
                     );
 
                     $checkKeys[] = [
                         'limit_id' => $limitData->id,
-                        'name' => $limitData->name,
                         'key'  => $key,
                         'max'  => $limitData->limit_rate
                     ];
@@ -93,18 +88,17 @@ class LimitCache extends BaseSystemResource
             } else { /* Normal key checks */
 
                 $key = $limit->resolveCheckKey(
-                    $limitData->limit_type,
+                    $limitData->type,
                     $limitData->user_id,
                     $limitData->role_id,
                     $limitData->service_id,
-                    $limitData->limit_period
+                    $limitData->period
                 );
 
                 $checkKeys[] = [
                     'limit_id' => $limitData->id,
-                    'name' => $limitData->name,
                     'key'  => $key,
-                    'max'  => $limitData->limit_rate
+                    'max'  => $limitData->rate
                 ];
             }
         }
@@ -173,16 +167,16 @@ class LimitCache extends BaseSystemResource
 
         foreach($limitData as $limit){
             /* Handles clearing for Each User scenario */
-            if (strpos($limit->limit_type, 'user') && is_null($limit->user_id)) {
+            if (strpos($limit->type, 'user') && is_null($limit->user_id)) {
 
                 foreach ($users as $user) {
                     /* need to generate a key for each user to check */
                     $usrKey = $limitModel->resolveCheckKey(
-                        $limit->limit_type,
+                        $limit->type,
                         $user->id,
                         $limit->role_id,
                         $limit->service_id,
-                        $limit->limit_period
+                        $limit->period
                     );
                     $this->clearKey($usrKey);
                 }
@@ -191,11 +185,11 @@ class LimitCache extends BaseSystemResource
 
                 /* build the key to check */
                 $keyCheck = $limitModel->resolveCheckKey(
-                    $limit->limit_type,
+                    $limit->type,
                     $limit->user_id,
                     $limit->role_id,
                     $limit->service_id,
-                    $limit->limit_period
+                    $limit->period
                 );
 
                 $this->clearKey($keyCheck);

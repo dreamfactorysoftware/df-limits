@@ -64,14 +64,14 @@ class EvaluateLimits
         /* check for user overrides */
         $userOverrides = [];
         foreach ($limits as $limit) {
-            if ($limit->limit_type == 'instance.user' && !is_null($limit->user_id)) {
+            if ($limit->type == 'instance.user' && !is_null($limit->user_id)) {
                 $userOverrides[] = $limit->user_id;
             }
         }
 
         foreach ($limits as $limit) {
             $dbUser = $limit->user_id;
-            $isUserLimit = strpos($limit->limit_type, 'user');
+            $isUserLimit = strpos($limit->type, 'user');
 
             /* This checks for an "Each User" condition, where the limit would apply to every user
             /* for this instance or service. The cache key will be based on each user in this case,
@@ -86,22 +86,22 @@ class EvaluateLimits
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey = $limitModel->resolveCheckKey($limit->limit_type, $dbUser, $limit->role_id, $limit->service_id, $limit->limit_period);
+            $checkKey = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->limit_type, $userId, $roleId, $service->id, $limit->limit_period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $limit->period);
 
             if ($checkKey == $derivedKey) {
                 if ( ! $isUserLimit || ($isUserLimit && ! is_null($token))) {
 
-                    if ($this->limiter->tooManyAttempts($checkKey, $limit->limit_rate,
-                        Limit::$limitIntervals[$limit->limit_period])
+                    if ($this->limiter->tooManyAttempts($checkKey, $limit->rate,
+                        Limit::$limitIntervals[$limit->period])
                     ) {
                         $overLimit[] = [
                             'id'         => $limit->id,
-                            'label_text' => $limit->label_text
+                            'label_text' => $limit->name
                         ];
                     } else {
-                        $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->limit_period]);
+                        $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
                     }
                 }
             }
@@ -111,8 +111,8 @@ class EvaluateLimits
             $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null, $overLimit));
 
             return $this->addHeaders(
-                $response, $limit->limit_rate,
-                $this->calculateRemainingAttempts($checkKey, $limit->limit_rate),
+                $response, $limit->rate,
+                $this->calculateRemainingAttempts($checkKey, $limit->rate),
                 true
             );
         }
