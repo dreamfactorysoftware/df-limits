@@ -97,8 +97,9 @@ class EvaluateLimits
                         Limit::$limitIntervals[$limit->period])
                     ) {
                         $overLimit[] = [
-                            'id'         => $limit->id,
-                            'label_text' => $limit->name
+                            'id'    => $limit->id,
+                            'name'  => $limit->name,
+                            'label' => $limit->label
                         ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
