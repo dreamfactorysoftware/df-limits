@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Limit\Resources\System\LimitCache as Cache;
 
 class Limit extends BaseSystemResource
@@ -80,7 +81,7 @@ class Limit extends BaseSystemResource
             $returnData = $response->getContent();
             if (is_array($returnData['resource'])) {
                 foreach ($returnData['resource'] as &$return) {
-                    if (isset($return['limit_period'])) {
+                    if (isset($return['period'])) {
                         $return['period'] = LimitsModel::$limitPeriods[$return['period']];
                     }
                 }
@@ -118,6 +119,28 @@ class Limit extends BaseSystemResource
      */
     protected function handlePATCH()
     {
+        /*
+        $params  = $this->request->getParameters();
+        $payload = $this->getPayloadData();
+
+        if (!empty($this->resource)) {
+            $id = $this->resource;
+
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+            $records = ResourcesWrapper::unwrapResources($payload);
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
+            }
+            /* multiple Ids update */
+        /*
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($payload))) {
+            //$result = $this->bulkUpdate($records, $params));
+        } else {
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
+        }
+
+        */
+
         try {
             $this->enrichRecordData();
             return parent::handlePATCH();
