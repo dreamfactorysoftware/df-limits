@@ -42,7 +42,6 @@ class Limit extends BaseSystemModel
 
     protected $hidden = [
         'create_date',
-        'key_text',
         'active_ind'
     ];
 
