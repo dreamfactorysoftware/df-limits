@@ -9,6 +9,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Exceptions\NotFoundException;
 
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -50,7 +51,8 @@ class LimitCache extends BaseSystemResource
 
     protected function handleGET($id = null)
     {
-        $limit = new static::$model;
+        $limit  = new static::$model;
+        $limits = null;
         if (!empty($this->resource)) {
             /* Single Resource ID */
             $id = $this->resource;
@@ -63,9 +65,9 @@ class LimitCache extends BaseSystemResource
             }
         }
 
-        if(isset($limits) && !empty($limits)){
-        $checkKeys = [];
-        $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
+        if($limits && !($limits->isEmpty())){
+            $checkKeys = [];
+            $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
             foreach ($limits as $limitData) {
 
                 /* Check for each user condition */
@@ -112,9 +114,15 @@ class LimitCache extends BaseSystemResource
             }
 
             return ResourcesWrapper::wrapResources($checkKeys);
+        } else {
+            if(!is_null($id)){
+                throw new NotFoundException('Record not found');
+
+            } else {
+                return ResourcesWrapper::wrapResources([]);
+            }
         }
 
-        return ResponseFactory::create(["error" => "The limit cache does not exist."], null, 404);
 
 
     }
