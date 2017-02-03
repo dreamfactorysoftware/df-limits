@@ -239,9 +239,6 @@ class Limit extends BaseSystemResource
     protected function validateLimitPayload(&$record)
     {
 
-        /* Default service id enriched value - will get set from name if exists in database in _resolveServiceName(). */
-        $record['service_id'] = null;
-
         switch ($record['type']) {
             case 'instance':
                 break;
@@ -288,20 +285,20 @@ class Limit extends BaseSystemResource
                         $record['name']);
                 }
 
-                if (!$this->resolveServiceName($record)) {
-                    throw new BadRequestException('No service_name exists for ' . $record['name'] . ' limit.');
+                if (!$this->checkService($record['service_id'])) {
+                    throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
 
                 break;
 
             case 'instance.service':
 
-                if (!isset($record['service_name']) || is_null($record['service_name'])) {
-                    throw new BadRequestException('service_name must be specified with this limit type.');
+                if (!isset($record['service_id']) || is_null($record['service_id'])) {
+                    throw new BadRequestException('service_id must be specified with this limit type.');
                 }
 
-                if (!$this->resolveServiceName($record)) {
-                    throw new BadRequestException('No service_name exists for ' . $record['name'] . ' limit.');
+                if (!$this->checkService($record['service_id'])) {
+                    throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
 
                 break;
@@ -320,16 +317,11 @@ class Limit extends BaseSystemResource
         return Role::where('id', $id)->exists();
     }
 
-    protected function resolveServiceName(&$record)
+    protected function checkService($id)
     {
-
-        if ($service = Service::where('name', $record['service_name'])->first()) {
-            $record['service_id'] = $service->id;
-
-            return true;
-        }
-
-        return false;
+        return Service::where('id', $id)->exists();
     }
+
+
 
 }

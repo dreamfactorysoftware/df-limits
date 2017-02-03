@@ -49,7 +49,7 @@ class LimitCache extends BaseSystemResource
         $this->limiter = new RateLimiter($this->cache);
     }
 
-    protected function handleGET($id = null)
+    protected function handleGET()
     {
         $limit  = new static::$model;
         $limits = null;
@@ -63,6 +63,9 @@ class LimitCache extends BaseSystemResource
             if (isset($records[0]) && is_array($records[0])) {
                 $limits = $limit::where('active_ind', 1)->find($records[0]);
             }
+        } else {
+            /* No id passed, get all limit cache entries */
+            $limits = $limit::where('active_ind', 1)->get();
         }
 
         if($limits && !($limits->isEmpty())){
