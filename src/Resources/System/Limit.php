@@ -280,11 +280,6 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('No user_id exists for ' . $record['name'] . ' limit.');
                 }
 
-                if (!isset($record['service_name']) || is_null($record['service_name'])) {
-                    throw new BadRequestException('service_name must be specified with this limit type. Limit: ' .
-                        $record['name']);
-                }
-
                 if (!$this->checkService($record['service_id'])) {
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
