@@ -39,6 +39,12 @@ class LimitCache extends BaseSystemResource
     protected $cache;
 
     /**
+     * Standard not found string to use.
+     * @var string
+     */
+    protected $notFoundStr = "Record with identifier '%s' not found.";
+
+    /**
      * Create a new request throttler.
      *
      * @param  \Illuminate\Cache\RateLimiter $limiter
@@ -54,7 +60,7 @@ class LimitCache extends BaseSystemResource
     protected function handleGET()
     {
         $limit  = new static::$model;
-        $limits = null;
+        $limits = $id = null;
         $params = $this->request->getParameters();
         if (!empty($this->resource)) {
             /* Single Resource ID */
@@ -120,7 +126,7 @@ class LimitCache extends BaseSystemResource
             return ResourcesWrapper::wrapResources($checkKeys);
         } else {
             if(!is_null($id)){
-                throw new NotFoundException(sprintf("Record with identifier '%s' not found", $id));
+                throw new NotFoundException(sprintf($this->notFoundStr, $id));
 
             } else {
                 return ResourcesWrapper::wrapResources([]);
@@ -219,7 +225,7 @@ class LimitCache extends BaseSystemResource
 
         } else {
             if(!is_null($id)){
-                throw new NotFoundException(sprintf("Record with identifier '%s' not found", $id));
+                throw new NotFoundException(sprintf($this->notFoundStr, $id));
 
             } else {
                 return ResourcesWrapper::wrapResources([]);
@@ -247,7 +253,7 @@ class LimitCache extends BaseSystemResource
         foreach ($records as $k=>$idRecord) {
             if (!$limitModel::where('id', $idRecord['id'])->exists()) {
                 $errors[] = $k;
-                $invalidIds[$k] = sprintf("Record with identifier '%s' not found.", $idRecord['id']);
+                $invalidIds[$k] = sprintf($this->notFoundStr, $idRecord['id']);
                 if(!$continue){
                     break;
                 }
