@@ -6,6 +6,8 @@ use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use DreamFactory\Core\Resources\System\Cache;
 use DreamFactory\Core\Utility\ResponseFactory;
+use Symfony\Component\HttpFoundation\Response;
+
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -53,6 +55,7 @@ class LimitCache extends BaseSystemResource
     {
         $limit  = new static::$model;
         $limits = null;
+        $params = $this->request->getParameters();
         if (!empty($this->resource)) {
             /* Single Resource ID */
             $id = $this->resource;
@@ -60,9 +63,7 @@ class LimitCache extends BaseSystemResource
         } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $limits = $limit::where('active_ind', 1)->find($ids);
         } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            if (isset($records[0]) && is_array($records[0])) {
-                $limits = $limit::where('active_ind', 1)->find($records[0]);
-            }
+            $limits = $limit::where('active_ind', 1)->find($records);
         } else {
             /* No id passed, get all limit cache entries */
             $limits = $limit::where('active_ind', 1)->get();
@@ -119,15 +120,12 @@ class LimitCache extends BaseSystemResource
             return ResourcesWrapper::wrapResources($checkKeys);
         } else {
             if(!is_null($id)){
-                throw new NotFoundException('Record not found');
+                throw new NotFoundException(sprintf('Record with identifier %s not found', $id));
 
             } else {
                 return ResourcesWrapper::wrapResources([]);
             }
         }
-
-
-
     }
 
     protected function getAttempts($key, $max)
@@ -155,6 +153,7 @@ class LimitCache extends BaseSystemResource
     protected function handleDELETE()
     {
         $params = $this->request->getParameters();
+        $payload = $this->getPayloadData();
         if (isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)) {
             $this->cache->flush();
             $result = [
@@ -174,7 +173,10 @@ class LimitCache extends BaseSystemResource
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
-        return ResponseFactory::create($result);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+        return $result;
     }
 
     public function clearById($id)
@@ -183,40 +185,54 @@ class LimitCache extends BaseSystemResource
         $limitData = $limitModel::where('id', $id)->get();
         $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
 
-        foreach ($limitData as $limit) {
-            /* Handles clearing for Each User scenario */
-            if (strpos($limit->type, 'user') && is_null($limit->user_id)) {
+        if($limitData && !($limitData->isEmpty())){
+            foreach ($limitData as $limit) {
+                /* Handles clearing for Each User scenario */
+                if (strpos($limit->type, 'user') && is_null($limit->user_id)) {
 
-                foreach ($users as $user) {
-                    /* need to generate a key for each user to check */
-                    $usrKey = $limitModel->resolveCheckKey(
+                    foreach ($users as $user) {
+                        /* need to generate a key for each user to check */
+                        $usrKey = $limitModel->resolveCheckKey(
+                            $limit->type,
+                            $user->id,
+                            $limit->role_id,
+                            $limit->service_id,
+                            $limit->period
+                        );
+                        $this->clearKey($usrKey);
+                    }
+                } else {
+
+                    /* build the key to check */
+                    $keyCheck = $limitModel->resolveCheckKey(
                         $limit->type,
-                        $user->id,
+                        $limit->user_id,
                         $limit->role_id,
                         $limit->service_id,
                         $limit->period
                     );
-                    $this->clearKey($usrKey);
+
+                    $this->clearKey($keyCheck);
                 }
+            }
+        } else {
+            if(!is_null($id)){
+                throw new NotFoundException(sprintf('Record with identifier %s not found', $id));
+
             } else {
-
-                /* build the key to check */
-                $keyCheck = $limitModel->resolveCheckKey(
-                    $limit->type,
-                    $limit->user_id,
-                    $limit->role_id,
-                    $limit->service_id,
-                    $limit->period
-                );
-
-                $this->clearKey($keyCheck);
+                return ResourcesWrapper::wrapResources([]);
             }
         }
+
+
     }
 
     public function clearByIds($records = array(), $params)
     {
+        $key = 'id';
+        $continue = (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
         if (isset($params['ids']) && !empty($params['ids'])) {
+            //$key = 'ids';
             $idParts = explode(',', $params['ids']);
             $records = array();
             foreach ($idParts as $idPart) {
@@ -225,22 +241,38 @@ class LimitCache extends BaseSystemResource
         }
         $invalidIds = $validIds = [];
         $limitModel = new static::$model;
-
-        foreach ($records as $idRecord) {
+        $errors = [];
+        foreach ($records as $k=>$idRecord) {
             if (!$limitModel::where('id', $idRecord['id'])->exists()) {
-                $invalidIds[]['id'] = $idRecord['id'];
+                $errors[] = $k;
+                $invalidIds[$k] = sprintf("Record with identifier '%s' not found.", $idRecord['id']);
+                if(!$continue){
+                    break;
+                }
             } else {
-                $validIds[] = $idRecord['id'];
+                $validIds[$k] = [$key => $idRecord['id']];
+                $this->clearById($idRecord['id']);
             }
         }
 
-        foreach ($validIds as $validId) {
-            $this->clearById($validId);
-        }
-
         if (!empty($invalidIds)) {
-            throw new BadRequestException('Failed to clear all or some limits: One or more Ids are invalid.', null,
-                null, $invalidIds);
+            /* Build a proper response array -> order is indeed important here <- need to
+            /* preserve the keys to get the proper resource array order on batch operations */
+            $errors = ['error' => $errors];
+            /* Merge back in the two -> good and bad */
+            $records = array_replace($validIds, $invalidIds);
+            /* sort by keys */
+            ksort($records);
+            /* remove the keys */
+            $records = array_values($records);
+            /* wrap up the resources */
+            $resources = ResourcesWrapper::wrapResources($records);
+            /* build the context */
+            $context = $errors + $resources;
+            throw new BadRequestException('Batch Error: Not all records could be deleted.', Response::HTTP_INTERNAL_SERVER_ERROR,
+                null, $context);
+        } else {
+            return $validIds;
         }
     }
 
