@@ -120,7 +120,7 @@ class LimitCache extends BaseSystemResource
             return ResourcesWrapper::wrapResources($checkKeys);
         } else {
             if(!is_null($id)){
-                throw new NotFoundException(sprintf('Record with identifier %s not found', $id));
+                throw new NotFoundException(sprintf("Record with identifier '%s' not found", $id));
 
             } else {
                 return ResourcesWrapper::wrapResources([]);
@@ -219,7 +219,7 @@ class LimitCache extends BaseSystemResource
 
         } else {
             if(!is_null($id)){
-                throw new NotFoundException(sprintf('Record with identifier %s not found', $id));
+                throw new NotFoundException(sprintf("Record with identifier '%s' not found", $id));
 
             } else {
                 return ResourcesWrapper::wrapResources([]);
