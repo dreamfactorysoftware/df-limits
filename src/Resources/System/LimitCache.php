@@ -164,7 +164,8 @@ class LimitCache extends BaseSystemResource
         }
 
         if (!empty($this->resource)) {
-            $result = $this->clearById($this->resource, $params);
+            $this->clearById($this->resource, $params);
+            $result = ['id' => (int)$this->resource];
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $this->clearByIds($ids, $params);
         } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
@@ -215,6 +216,7 @@ class LimitCache extends BaseSystemResource
                     $this->clearKey($keyCheck);
                 }
             }
+
         } else {
             if(!is_null($id)){
                 throw new NotFoundException(sprintf('Record with identifier %s not found', $id));
@@ -236,7 +238,7 @@ class LimitCache extends BaseSystemResource
             $idParts = explode(',', $params['ids']);
             $records = array();
             foreach ($idParts as $idPart) {
-                $records[] = ['id' => $idPart];
+                $records[] = ['id' => (int)$idPart];
             }
         }
         $invalidIds = $validIds = [];
@@ -250,7 +252,7 @@ class LimitCache extends BaseSystemResource
                     break;
                 }
             } else {
-                $validIds[$k] = [$key => $idRecord['id']];
+                $validIds[$k] = [$key => (int)$idRecord['id']];
                 $this->clearById($idRecord['id']);
             }
         }
