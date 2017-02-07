@@ -42,7 +42,6 @@ class Limit extends BaseSystemModel
 
     protected $hidden = [
         'create_date',
-        'active_ind'
     ];
 
     protected $fillable = [
@@ -99,6 +98,17 @@ class Limit extends BaseSystemModel
 
             return $key . '.' . static::$limitPeriods[$limitPeriod];
         }
+    }
+
+    /**
+     * Get the active indicator and return bool
+     *
+     * @param  string  $value
+     * @return Bool
+     */
+    public function getActiveIndAttribute($value)
+    {
+        return ($value === 1) ? true : false;
     }
 
     /**
