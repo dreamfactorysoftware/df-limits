@@ -6,6 +6,7 @@ use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Resources\System\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
+use DreamFactory\Core\Limit\Http\Middleware\EvaluateLimits;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Http\Kernel;
 
@@ -44,5 +45,25 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
              $df->addMapping('user_custom', UserCustom::class);
          });*/
     }
+
+    /**
+     * Register any middleware aliases.
+     *
+     * @return void
+     */
+    protected function addMiddleware()
+    {
+        // the method name was changed in Laravel 5.4
+        if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
+            Route::aliasMiddleware('df.evaluate_limits', EvaluateLimits::class);
+        } else {
+            /** @noinspection PhpUndefinedMethodInspection */
+            Route::middleware('df.evaluate_limits', EvaluateLimits::class);
+
+        }
+
+        Route::middlewareGroup('df.api', ['df.evaluate_limits']);
+    }
+
 
 }
