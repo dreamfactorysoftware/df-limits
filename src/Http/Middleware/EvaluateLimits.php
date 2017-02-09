@@ -58,7 +58,7 @@ class EvaluateLimits
 
         $service = Service::where('name', $request->route()->getParameter('service'))->first();
 
-        $limits = Limit::where('active_ind', 1)->get();
+        $limits = Limit::where('is_active', 1)->get();
         $overLimit = [];
 
         /* check for user overrides */

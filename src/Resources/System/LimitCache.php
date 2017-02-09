@@ -82,7 +82,7 @@ class LimitCache extends BaseSystemResource
             $result = $this->getLimitsByIds($records, $params);
         } else {
             /* No id passed, get all limit cache entries */
-            $result = LimitsModel::where('active_ind', 1)->get();
+            $result = LimitsModel::where('is_active', 1)->get();
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
@@ -147,7 +147,7 @@ class LimitCache extends BaseSystemResource
 
     protected function getLimitsById($id)
     {
-        $limits = limitsModel::where('active_ind', 1)->where('id', $id)->get();
+        $limits = limitsModel::where('is_active', 1)->where('id', $id)->get();
 
         if ($limits && !($limits->isEmpty())) {
             $checkKeys = [];

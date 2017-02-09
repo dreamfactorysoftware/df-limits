@@ -54,7 +54,7 @@ class Limit extends BaseSystemModel
         'label',
         'period',
         'key_text',
-        'active_ind'
+        'is_active'
 
     ];
 
@@ -106,7 +106,7 @@ class Limit extends BaseSystemModel
      * @param  string  $value
      * @return Bool
      */
-    public function getActiveIndAttribute($value)
+    public function getIsActiveAttribute($value)
     {
         return ($value === 1) ? true : false;
     }

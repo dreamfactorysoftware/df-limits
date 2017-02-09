@@ -238,8 +238,8 @@ class Limit extends BaseSystemResource
             }
 
             /* limits are active by default, but in case of deactivation, set the limit inactive */
-            if (isset($record['active']) && !filter_var($record['active'], FILTER_VALIDATE_BOOLEAN)) {
-                $record['active_ind'] = 0;
+            if (isset($record['is_active']) && !filter_var($record['is_active'], FILTER_VALIDATE_BOOLEAN)) {
+                $record['is_active'] = 0;
             }
         }
 
