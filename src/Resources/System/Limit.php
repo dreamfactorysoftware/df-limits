@@ -78,15 +78,21 @@ class Limit extends BaseSystemResource
         try {
             /* First, enrich our payload with some conversions and a unique key */
             $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-
+            $isRollback = $this->request->getParameter('rollback');
             /* enrich the records (and validate) */
             foreach ($records as &$record) {
                 $record = $this->enrichAndValidateRecordData($record);
+
+                /* Check that the key doesn't already exist (case of same limit type, etc) */
+                if(LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback){
+                    throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
+
+                }
+
             }
 
+
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
-            /* For bulk create, rollback the transaction if a record fails. */
-            $this->request->setParameter('rollback', true);
 
             $response = parent::handlePOST();
             $returnData = $response->getContent();
@@ -101,9 +107,6 @@ class Limit extends BaseSystemResource
             return $returnData;
         } catch (\Exception $e) {
             $message = $e->getMessage();
-            if (preg_match('/Duplicate entry (.*) for key \'limits_key_text_unique\'/', $message)) {
-                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, $e);
-            }
             throw new BadRequestException('An error occurred when inserting Limits: ' . $message);
         }
     }
@@ -136,6 +139,7 @@ class Limit extends BaseSystemResource
     {
 
         $params = $this->request->getParameters();
+
         $payload = $this->getPayloadData();
 
         if (!empty($this->resource)) {
@@ -146,10 +150,15 @@ class Limit extends BaseSystemResource
             /* Merge the delta */
             $record = array_merge($limitRecord, $payload);
             $record = $this->enrichAndValidateRecordData($record);
+
             /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
             if ($record['key_text'] == $limitRecord['key_text']) {
                 unset($record['key_text']);
+            } elseif(LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']){
+                /* If a record exists in the DB that matches the key, throw it out */
+                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
             }
+
             $this->request->setPayloadData($record);
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $records = ResourcesWrapper::unwrapResources($payload);
@@ -177,6 +186,7 @@ class Limit extends BaseSystemResource
                 $limitRecord = LimitsModel::where('id', $record['id'])->first()->toArray();
                 $tmpRecord = array_merge($limitRecord, $record);
                 $record = $this->enrichAndValidateRecordData($tmpRecord);
+
                 /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
                 if ($record['key_text'] == $tmpRecord['key_text']) {
                     unset($record['key_text']);
