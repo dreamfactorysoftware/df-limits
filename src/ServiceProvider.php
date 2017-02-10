@@ -7,10 +7,21 @@ use DreamFactory\Core\Resources\System\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Limit\Http\Middleware\EvaluateLimits;
-
+use Route;
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
     use ServiceDocBuilder;
+
+    /**
+     * @inheritdoc
+     */
+    public function boot()
+    {
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->addMiddleware();
+
+    }
+
 
     public function register()
     {
@@ -59,14 +70,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         Route::middlewareGroup('df.api', ['df.evaluate_limits']);
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function boot()
-    {
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-
-    }
 
 
 }

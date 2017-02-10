@@ -11,7 +11,7 @@ use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\Service;
 
 use Carbon\Carbon;
-
+use Route;
 use Closure;
 
 class EvaluateLimits
@@ -55,8 +55,8 @@ class EvaluateLimits
         if ($isAdmin) {
             return $next($request);
         }
-
-        $service = Service::where('name', $request->route()->getParameter('service'))->first();
+        $routeService = Route::getCurrentRoute()->parameter('service');
+        $service = Service::where('name', $routeService)->first();
 
         $limits = Limit::where('is_active', 1)->get();
         $overLimit = [];
