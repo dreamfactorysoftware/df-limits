@@ -18,7 +18,7 @@ class CreateLimitsTable extends Migration
             function (Blueprint $t){
                 $t->bigIncrements('id')->unsigned();
                 $t->string('type', 50);
-                $t->string('key_text')->unique();
+                $t->string('key_text', 100)->unique();
                 $t->integer('rate');
                 $t->integer('period');
                 $t->mediumInteger('user_id')->nullable();

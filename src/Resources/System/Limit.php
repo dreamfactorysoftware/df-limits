@@ -75,40 +75,34 @@ class Limit extends BaseSystemResource
     protected function handlePOST()
     {
 
-        try {
-            /* First, enrich our payload with some conversions and a unique key */
-            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-            $isRollback = $this->request->getParameter('rollback');
-            /* enrich the records (and validate) */
-            foreach ($records as &$record) {
-                $record = $this->enrichAndValidateRecordData($record);
+        /* First, enrich our payload with some conversions and a unique key */
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        $isRollback = $this->request->getParameter('rollback');
+        /* enrich the records (and validate) */
+        foreach ($records as &$record) {
+            $record = $this->enrichAndValidateRecordData($record);
 
-                /* Check that the key doesn't already exist (case of same limit type, etc) */
-                if(LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback){
-                    throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
-
-                }
+            /* Check that the key doesn't already exist (case of same limit type, etc) */
+            if(LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback){
+                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
 
             }
 
-
-            $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
-
-            $response = parent::handlePOST();
-            $returnData = $response->getContent();
-            if (is_array($returnData['resource'])) {
-                foreach ($returnData['resource'] as &$return) {
-                    if (isset($return['period'])) {
-                        $return['period'] = LimitsModel::$limitPeriods[$return['period']];
-                    }
-                }
-            }
-
-            return $returnData;
-        } catch (\Exception $e) {
-            $message = $e->getMessage();
-            throw new BadRequestException('An error occurred when inserting Limits: ' . $message);
         }
+
+        $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
+
+        $response = parent::handlePOST();
+        $returnData = $response->getContent();
+        if (is_array($returnData['resource'])) {
+            foreach ($returnData['resource'] as &$return) {
+                if (isset($return['period'])) {
+                    $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+            }
+        }
+
+        return $returnData;
     }
 
     /**
@@ -144,7 +138,7 @@ class Limit extends BaseSystemResource
 
         if (!empty($this->resource)) {
 
-            $id = $this->resource;
+            $id = (int)$this->resource;
             /* Call the model with the ID to merge */
             $limitRecord = LimitsModel::where('id', $id)->first()->toArray();
             /* Merge the delta */
@@ -169,7 +163,8 @@ class Limit extends BaseSystemResource
             $updateRecords = [];
             $idParts = explode(',', $ids);
             foreach ($idParts as $idBuild) {
-                $tmpRecord = array_merge(LimitsModel::where('id', $idBuild)->first()->toArray(), $records[0]);
+                $record = (isset($records[0])) ? $records[0] : $records;
+                $tmpRecord = array_merge(LimitsModel::where('id', $idBuild)->first()->toArray(), $record);
                 $return = $this->enrichAndValidateRecordData($tmpRecord);
                 /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
                 if ($tmpRecord['key_text'] == $return['key_text']) {
@@ -178,7 +173,6 @@ class Limit extends BaseSystemResource
                 $updateRecords[] = $return;
             }
 
-            $this->request->setParameter('rollback', true);
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($updateRecords));
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($payload))) {
 
@@ -195,20 +189,10 @@ class Limit extends BaseSystemResource
             $this->request->setParameter('rollback', true);
 
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
-        } else {
-            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
-        try {
+        return parent::handlePATCH();
 
-            return parent::handlePATCH();
-        } catch (\Exception $e) {
-            $message = $e->getMessage();
-            if (preg_match('/Duplicate entry (.*) for key \'limits_key_text_unique\'/', $message)) {
-                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, $e);
-            }
-            throw new BadRequestException('An error occurred when inserting Limits: ' . $message);
-        }
     }
 
     /**
