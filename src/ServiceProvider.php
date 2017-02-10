@@ -67,7 +67,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             Route::middleware('df.evaluate_limits', EvaluateLimits::class);
 
         }
-        Route::middlewareGroup('df.api', ['df.evaluate_limits']);
+        Route::pushMiddlewareToGroup('df.api', 'df.evaluate_limits');
     }
 
 
