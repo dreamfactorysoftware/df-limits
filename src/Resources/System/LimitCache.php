@@ -271,7 +271,7 @@ class LimitCache extends BaseSystemResource
         return $result;
     }
 
-    public function clearById($id)
+    public function clearById($id, $params = array(), $throw = true)
     {
         $limitModel = new static::$model;
         $limitData = $limitModel::where('id', $id)->get();
@@ -308,7 +308,7 @@ class LimitCache extends BaseSystemResource
                 }
             }
         } else {
-            if (!is_null($id)) {
+            if (!is_null($id) && $throw) {
                 throw new NotFoundException(sprintf($this->notFoundStr, $id));
             } else {
                 return ResourcesWrapper::wrapResources([]);
@@ -316,7 +316,7 @@ class LimitCache extends BaseSystemResource
         }
     }
 
-    public function clearByIds($records = array(), $params)
+    public function clearByIds($records = array(), $params = array(), $throw = true)
     {
         $key = 'id';
         $continue =
@@ -359,9 +359,12 @@ class LimitCache extends BaseSystemResource
             $resources = ResourcesWrapper::wrapResources($records);
             /* build the context */
             $context = $errors + $resources;
-            throw new BadRequestException('Batch Error: Not all records could be deleted.',
-                Response::HTTP_INTERNAL_SERVER_ERROR,
-                null, $context);
+            if($throw){
+                throw new BadRequestException('Batch Error: Not all records could be deleted.',
+                    Response::HTTP_INTERNAL_SERVER_ERROR,
+                    null, $context);
+            }
+
         } else {
             return $validIds;
         }

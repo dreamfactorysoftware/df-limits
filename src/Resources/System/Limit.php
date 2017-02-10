@@ -11,6 +11,8 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Limit\Resources\System\LimitCache as Cache;
+use Symfony\Component\HttpFoundation\Response;
+
 
 class Limit extends BaseSystemResource
 {
@@ -78,20 +80,19 @@ class Limit extends BaseSystemResource
         /* First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         $isRollback = $this->request->getParameter('rollback');
+        if(!isset($records[0])){
+            $tmpRecords[] = $records;
+            $records = $tmpRecords;
+        }
         /* enrich the records (and validate) */
         foreach ($records as &$record) {
             $record = $this->enrichAndValidateRecordData($record);
-
             /* Check that the key doesn't already exist (case of same limit type, etc) */
             if(LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback){
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
-
             }
-
         }
-
         $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
-
         $response = parent::handlePOST();
         $returnData = $response->getContent();
         if (is_array($returnData['resource'])) {
@@ -113,11 +114,11 @@ class Limit extends BaseSystemResource
         $params = $this->request->getParameters();
 
         if (!empty($this->resource)) {
-            $result = $this->cache->clearById($this->resource, $params);
+            $result = $this->cache->clearById($this->resource, $params, false);
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->cache->clearByIds($ids, $params);
+            $result = $this->cache->clearByIds($ids, $params, false);
         } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
-            $result = $this->cache->clearByIds($records, $params);
+            $result = $this->cache->clearByIds($records, $params, false);
         } else {
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
@@ -140,7 +141,11 @@ class Limit extends BaseSystemResource
 
             $id = (int)$this->resource;
             /* Call the model with the ID to merge */
-            $limitRecord = LimitsModel::where('id', $id)->first()->toArray();
+            $recordObj = LimitsModel::where('id', $id)->first();
+            if(empty($recordObj)){
+                throw new BadRequestException(sprintf("Record with identifier '%s' not found.",$id), 404, null);
+            }
+            $limitRecord = $recordObj->toArray();
             /* Merge the delta */
             $record = array_merge($limitRecord, $payload);
             $record = $this->enrichAndValidateRecordData($record);
@@ -164,7 +169,11 @@ class Limit extends BaseSystemResource
             $idParts = explode(',', $ids);
             foreach ($idParts as $idBuild) {
                 $record = (isset($records[0])) ? $records[0] : $records;
-                $tmpRecord = array_merge(LimitsModel::where('id', $idBuild)->first()->toArray(), $record);
+                $modelRecord = LimitsModel::where('id', $idBuild)->first();
+                if(empty($modelRecord)){
+                    continue;
+                }
+                $tmpRecord = array_merge($modelRecord->toArray(), $record);
                 $return = $this->enrichAndValidateRecordData($tmpRecord);
                 /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
                 if ($tmpRecord['key_text'] == $return['key_text']) {
@@ -172,21 +181,31 @@ class Limit extends BaseSystemResource
                 }
                 $updateRecords[] = $return;
             }
+            /* This test case should not occur often, bad id, but no resource. */
+            if(empty($updateRecords)){
+                $updateRecords = $records;
+            }
 
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($updateRecords));
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($payload))) {
+            /* This is a batch request */
+            foreach ($records as $k=>&$record) {
+                $recordObj = LimitsModel::where('id', $record['id'])->first();
+                if(empty($recordObj)){
+                   continue;
+                } else {
+                    $limitRecord = $recordObj->toArray();
+                    $tmpRecord = array_merge($limitRecord, $record);
+                    $record = $this->enrichAndValidateRecordData($tmpRecord);
 
-            foreach ($records as &$record) {
-                $limitRecord = LimitsModel::where('id', $record['id'])->first()->toArray();
-                $tmpRecord = array_merge($limitRecord, $record);
-                $record = $this->enrichAndValidateRecordData($tmpRecord);
+                    /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
+                    if ($record['key_text'] == $tmpRecord['key_text']) {
+                        unset($record['key_text']);
+                    }
 
-                /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
-                if ($record['key_text'] == $tmpRecord['key_text']) {
-                    unset($record['key_text']);
                 }
+
             }
-            $this->request->setParameter('rollback', true);
 
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
         }
