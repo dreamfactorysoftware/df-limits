@@ -1,11 +1,13 @@
 <?php
 namespace DreamFactory\Core\Limit\Resources\System;
 
+use DreamFactory\Core\Exceptions\BatchException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use DreamFactory\Core\Resources\System\Cache;
 use DreamFactory\Core\Utility\ResponseFactory;
+use League\Flysystem\Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 use Illuminate\Cache\RateLimiter;
@@ -75,7 +77,7 @@ class LimitCache extends BaseSystemResource
         if (!empty($this->resource)) {
             /* Single Resource ID */
             $result = $this->getLimitsById($this->resource);
-            $result = ResourcesWrapper::wrapResources($result);
+            return $result[0];
         } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $this->getLimitsByIds($ids, $params);
         } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
@@ -99,12 +101,9 @@ class LimitCache extends BaseSystemResource
 
     protected function getLimitsByIds($records = array(), $params)
     {
-        $key = 'id';
-        $continue =
-            (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
+        $continue = (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
 
         if (isset($params['ids']) && !empty($params['ids'])) {
-            //$key = 'ids';
             $idParts = explode(',', $params['ids']);
             $records = array();
             foreach ($idParts as $idPart) {
@@ -112,46 +111,30 @@ class LimitCache extends BaseSystemResource
             }
         }
 
-        $invalidIds = $validIds = [];
-        $errors = [];
+        $output = [];
+        $invalid = false;
         foreach ($records as $k => $idRecord) {
-            if (!limitsModel::where('id', $idRecord['id'])->exists()) {
-                $errors[] = $k;
-                $invalidIds[$k] = sprintf($this->notFoundStr, $idRecord['id']);
-                if (!$continue) {
+            try {
+                $tmp = $this->getLimitsById($idRecord['id']);
+                $output[$k] = $tmp[0];
+            } catch (\Exception $e){
+                $invalid = true;
+                $output[$k] = $e;
+                if(!$continue){
                     break;
                 }
-            } else {
-                $resolveId = $this->getLimitsById($idRecord['id']);
-                $validIds[$k] = $resolveId[0];
             }
         }
-
-        if (!empty($invalidIds)) {
-            /* Build a proper response array -> order is indeed important here <- need to
-            /* preserve the keys to get the proper resource array order on batch operations */
-            $errors = ['error' => $errors];
-            /* Merge back in the two -> good and bad */
-            $records = array_replace($validIds, $invalidIds);
-            /* sort by keys */
-            ksort($records);
-            /* remove the keys */
-            $records = array_values($records);
-            /* wrap up the resources */
-            $resources = ResourcesWrapper::wrapResources($records);
-            /* build the context */
-            $context = $errors + $resources;
-            throw new BadRequestException('Batch Error: Not all records could be located.',
-                Response::HTTP_INTERNAL_SERVER_ERROR,
-                null, $context);
+        if ($invalid) {
+            throw new BatchException($output, 'Batch Error: Not all requested records could be retrieved.');
         } else {
-            return $validIds;
+            return $output;
         }
     }
 
     protected function getLimitsById($id)
     {
-        $limits = limitsModel::where('is_active', 1)->where('id', $id)->get();
+        $limits = limitsModel::where('id', $id)->get();
 
         if ($limits && !($limits->isEmpty())) {
             $checkKeys = [];
@@ -179,9 +162,9 @@ class LimitCache extends BaseSystemResource
                         );
 
                         $checkKeys[] = [
-                            'limit_id' => $limitData->id,
+                            'id' => $limitData->id,
                             'key'      => $key,
-                            'max'      => $limitData->limit_rate
+                            'max'      => $limitData->rate
                         ];
                     }
                 } else { /* Normal key checks */
@@ -195,7 +178,7 @@ class LimitCache extends BaseSystemResource
                     );
 
                     $checkKeys[] = [
-                        'limit_id' => $limitData->id,
+                        'id' => $limitData->id,
                         'key'      => $key,
                         'max'      => $limitData->rate
                     ];
@@ -206,7 +189,6 @@ class LimitCache extends BaseSystemResource
 
             return $checkKeys;
         } else {
-
             throw new NotFoundException(sprintf($this->notFoundStr, $id));
         }
     }
@@ -224,7 +206,6 @@ class LimitCache extends BaseSystemResource
 
     protected function getAttempts($key, $max)
     {
-
         if ($this->cache->has($key)) {
             return $this->cache->get($key, 0);
         } else if ($this->cache->has($key . ':lockout')) {

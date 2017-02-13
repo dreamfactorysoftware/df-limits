@@ -13,7 +13,6 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Limit\Resources\System\LimitCache as Cache;
 use Symfony\Component\HttpFoundation\Response;
 
-
 class Limit extends BaseSystemResource
 {
     /**
@@ -80,7 +79,7 @@ class Limit extends BaseSystemResource
         /* First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         $isRollback = $this->request->getParameter('rollback');
-        if(!isset($records[0])){
+        if (!isset($records[0])) {
             $tmpRecords[] = $records;
             $records = $tmpRecords;
         }
@@ -88,8 +87,9 @@ class Limit extends BaseSystemResource
         foreach ($records as &$record) {
             $record = $this->enrichAndValidateRecordData($record);
             /* Check that the key doesn't already exist (case of same limit type, etc) */
-            if(LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback){
-                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
+            if (LimitsModel::where('key_text', $record['key_text'])->exists() && !$isRollback) {
+                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
+                    null, $record);
             }
         }
         $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
@@ -142,8 +142,8 @@ class Limit extends BaseSystemResource
             $id = (int)$this->resource;
             /* Call the model with the ID to merge */
             $recordObj = LimitsModel::where('id', $id)->first();
-            if(empty($recordObj)){
-                throw new BadRequestException(sprintf("Record with identifier '%s' not found.",$id), 404, null);
+            if (empty($recordObj)) {
+                throw new BadRequestException(sprintf("Record with identifier '%s' not found.", $id), 404, null);
             }
             $limitRecord = $recordObj->toArray();
             /* Merge the delta */
@@ -153,9 +153,10 @@ class Limit extends BaseSystemResource
             /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
             if ($record['key_text'] == $limitRecord['key_text']) {
                 unset($record['key_text']);
-            } elseif(LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']){
+            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']) {
                 /* If a record exists in the DB that matches the key, throw it out */
-                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0, null, $record);
+                throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
+                    null, $record);
             }
 
             $this->request->setPayloadData($record);
@@ -170,7 +171,7 @@ class Limit extends BaseSystemResource
             foreach ($idParts as $idBuild) {
                 $record = (isset($records[0])) ? $records[0] : $records;
                 $modelRecord = LimitsModel::where('id', $idBuild)->first();
-                if(empty($modelRecord)){
+                if (empty($modelRecord)) {
                     continue;
                 }
                 $tmpRecord = array_merge($modelRecord->toArray(), $record);
@@ -182,17 +183,23 @@ class Limit extends BaseSystemResource
                 $updateRecords[] = $return;
             }
             /* This test case should not occur often, bad id, but no resource. */
-            if(empty($updateRecords)){
+            if (empty($updateRecords)) {
                 $updateRecords = $records;
             }
 
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($updateRecords));
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($payload))) {
+            /* Do we have a single record? Make an array */
+            if(!isset($records[0])){
+                $tmpRecords[] = $records;
+                $records = $tmpRecords;
+            }
+
             /* This is a batch request */
-            foreach ($records as $k=>&$record) {
+            foreach ($records as $k => &$record) {
                 $recordObj = LimitsModel::where('id', $record['id'])->first();
-                if(empty($recordObj)){
-                   continue;
+                if (empty($recordObj)) {
+                    continue;
                 } else {
                     $limitRecord = $recordObj->toArray();
                     $tmpRecord = array_merge($limitRecord, $record);
@@ -202,16 +209,21 @@ class Limit extends BaseSystemResource
                     if ($record['key_text'] == $tmpRecord['key_text']) {
                         unset($record['key_text']);
                     }
-
                 }
-
             }
 
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
         }
 
         return parent::handlePATCH();
+    }
 
+    /**
+     * @inheritdoc
+     */
+    public function handlePUT()
+    {
+        return $this->handlePATCH();
     }
 
     /**
@@ -329,7 +341,5 @@ class Limit extends BaseSystemResource
     {
         return Service::where('id', $id)->exists();
     }
-
-
 
 }
