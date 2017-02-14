@@ -369,6 +369,9 @@ class LimitCache extends BaseSystemResource
                 return ResourcesWrapper::wrapResources([]);
             }
         }
+
+        return ['id' => $id];
+
     }
 
     /**
