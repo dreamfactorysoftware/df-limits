@@ -37,7 +37,8 @@ class Limit extends BaseSystemResource
 
     public function __construct()
     {
-        $this->cache = new LimitCache(false);
+        $this->cache = new LimitCache();
+        $this->cache->setThrowErrors(false);
         $this->limitModel = new static::$model;
     }
 
@@ -238,10 +239,7 @@ class Limit extends BaseSystemResource
         if ($this->validateLimitPayload($record)) {
             /* set the resolved limit period number */
             $record['period'] = $limitPeriodNumber;
-            /* check for an "each user" condition by a *, set it to null, bypassing validation */
-            if (strpos($record['type'], 'user') && $record['user_id'] == '*') {
-                $record['user_id'] = null;
-            }
+
             $key =
                 $this->limitModel->resolveCheckKey($record['type'], $record['user_id'], $record['role_id'],
                     $record['service_id'], $limitPeriodNumber);
@@ -266,10 +264,10 @@ class Limit extends BaseSystemResource
 
         switch ($record['type']) {
             case 'instance':
+                $this->nullify($record, ['user_id', 'role_id', 'service_id']);
                 break;
 
             case 'instance.user':
-
                 if (!isset($record['user_id']) || is_null($record['user_id'])) {
                     throw new BadRequestException('user_id must be specified with this limit type. Limit: ' .
                         $record['name']);
@@ -278,6 +276,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkUser($record['user_id']) && $record['user_id'] !== '*') {
                     throw new BadRequestException('user_id does not exist for ' . $record['name'] . ' limit.');
                 }
+                $this->nullify($record, ['role_id', 'service_id']);
 
                 break;
 
@@ -291,6 +290,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkRole($record['role_id'])) {
                     throw new BadRequestException('No role_id exists for ' . $record['name'] . ' limit.');
                 }
+                $this->nullify($record, ['user_id', 'service_id']);
 
                 break;
 
@@ -308,6 +308,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkService($record['service_id'])) {
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
+                $this->nullify($record, ['role_id']);
 
                 break;
 
@@ -320,7 +321,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkService($record['service_id'])) {
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
-
+                $this->nullify($record, ['user_id', 'role_id']);
                 break;
         }
 
@@ -341,5 +342,18 @@ class Limit extends BaseSystemResource
     {
         return Service::where('id', $id)->exists();
     }
+
+    protected function nullify(&$record, $nullable = array())
+    {
+        if(!empty($nullable)){
+            foreach($nullable as $type){
+                if(isset($record[$type])){
+                    $record[$type] = null;
+                }
+            }
+        }
+    }
+
+
 
 }

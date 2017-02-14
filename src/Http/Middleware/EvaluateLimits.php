@@ -58,20 +58,21 @@ class EvaluateLimits
         $routeService = Route::getCurrentRoute()->parameter('service');
         $service = Service::where('name', $routeService)->first();
 
+        /* Important - only evaluate against active limits */
         $limits = Limit::where('is_active', 1)->get();
         $overLimit = [];
 
         /* check for user overrides */
         $userOverrides = [];
         foreach ($limits as $limit) {
-            if ($limit->type == 'instance.user' && !is_null($limit->user_id)) {
+            if (in_array($limit->type, $limitModel::$eachUserTypes)) {
                 $userOverrides[] = $limit->user_id;
             }
         }
 
         foreach ($limits as $limit) {
             $dbUser = $limit->user_id;
-            $isUserLimit = strpos($limit->type, 'user');
+            $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 
             /* This checks for an "Each User" condition, where the limit would apply to every user
             /* for this instance or service. The cache key will be based on each user in this case,
@@ -91,6 +92,7 @@ class EvaluateLimits
             $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $limit->period);
 
             if ($checkKey == $derivedKey) {
+
                 if ( ! $isUserLimit || ($isUserLimit && ! is_null($token))) {
 
                     if ($this->limiter->tooManyAttempts($checkKey, $limit->rate,
