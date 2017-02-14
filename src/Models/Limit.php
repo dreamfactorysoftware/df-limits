@@ -12,9 +12,9 @@ class Limit extends BaseSystemModel
     public static $limitTypes = [
         'instance'                       => 'instance',
         'instance.user'                  => 'instance.user:%s',
-        'instance.each_user'             => 'instance.each_user',
+        'instance.each_user'             => 'instance.each_user:%s',
         'instance.user.service'          => 'instance.user:%s.service:%s',
-        'instance.each_useruser.service' => 'instance.each_user.service:%s',
+        'instance.each_useruser.service' => 'instance.each_user:%s.service:%s',
         'instance.service'               => 'instance.service:%s',
         'instance.role'                  => 'instance.role:%s',
     ];
@@ -80,12 +80,12 @@ class Limit extends BaseSystemModel
 
             switch ($limitType) {
                 case 'instance':
-                case 'instance.each_user':
                     $key = static::$limitTypes[$limitType];
                     break;
 
                 case 'instance.user':
-                    $key = sprintf(static::$limitTypes[$limitType], $userId);
+                case 'instance.each_user':
+                $key = sprintf(static::$limitTypes[$limitType], $userId);
                     break;
 
                 case 'instance.role':
@@ -93,10 +93,10 @@ class Limit extends BaseSystemModel
                     break;
 
                 case 'instance.user.service':
+                case 'instance.each_user.service':
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId);
                     break;
                 case 'instance.service':
-                case 'instance.each_user.service':
                     $key = sprintf(static::$limitTypes[$limitType], $serviceId);
                     break;
             }

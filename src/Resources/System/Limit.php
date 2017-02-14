@@ -154,6 +154,9 @@ class Limit extends BaseSystemResource
             /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
             if ($record['key_text'] == $limitRecord['key_text']) {
                 unset($record['key_text']);
+
+                $this->handleRateChanges($limitRecord, $record);
+
             } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']) {
                 /* If a record exists in the DB that matches the key, throw it out */
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
@@ -175,11 +178,14 @@ class Limit extends BaseSystemResource
                 if (empty($modelRecord)) {
                     continue;
                 }
-                $tmpRecord = array_merge($modelRecord->toArray(), $record);
+                $modelRecord = $modelRecord->toArray();
+                $tmpRecord = array_merge($modelRecord, $record);
                 $return = $this->enrichAndValidateRecordData($tmpRecord);
                 /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
-                if ($tmpRecord['key_text'] == $return['key_text']) {
+                if ($modelRecord['key_text'] == $return['key_text']) {
                     unset($return['key_text']);
+
+                    $this->handleRateChanges($modelRecord, $return);
                 }
                 $updateRecords[] = $return;
             }
@@ -191,7 +197,7 @@ class Limit extends BaseSystemResource
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($updateRecords));
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($payload))) {
             /* Do we have a single record? Make an array */
-            if(!isset($records[0])){
+            if (!isset($records[0])) {
                 $tmpRecords[] = $records;
                 $records = $tmpRecords;
             }
@@ -209,6 +215,8 @@ class Limit extends BaseSystemResource
                     /* If nothing that affects the key has changed, unset the key to prevent a duplicate false positive */
                     if ($record['key_text'] == $tmpRecord['key_text']) {
                         unset($record['key_text']);
+                        $this->handleRateChanges($limitRecord, $record);
+
                     }
                 }
             }
@@ -225,6 +233,24 @@ class Limit extends BaseSystemResource
     public function handlePUT()
     {
         return $this->handlePATCH();
+    }
+
+    /**
+     * If the key is locked out and the Admin changes the rate, need to unlock and reset the limit record. Handles
+     * each_user conditions as well
+     * @param $dbRecord
+     * @param $record
+     */
+    protected function handleRateChanges($dbRecord, $record)
+    {
+        /* If Admin is changing the rate, check for lockout condition */
+        if ($dbRecord['rate'] <> $record['rate']) {
+            if ($this->cache->hasLockout($dbRecord['key_text'])) {
+                /* If It's locked out, let's reset the counter value to allow for rate  increase, etc. */
+                $this->cache->clearById($dbRecord['id']);
+            }
+        }
+
     }
 
     /**
@@ -264,6 +290,7 @@ class Limit extends BaseSystemResource
 
         switch ($record['type']) {
             case 'instance':
+            case 'instance.each_user':
                 $this->nullify($record, ['user_id', 'role_id', 'service_id']);
                 break;
 
@@ -313,6 +340,7 @@ class Limit extends BaseSystemResource
                 break;
 
             case 'instance.service':
+            case 'instance.each_user.service':
 
                 if (!isset($record['service_id']) || is_null($record['service_id'])) {
                     throw new BadRequestException('service_id must be specified with this limit type.');
@@ -345,15 +373,13 @@ class Limit extends BaseSystemResource
 
     protected function nullify(&$record, $nullable = array())
     {
-        if(!empty($nullable)){
-            foreach($nullable as $type){
-                if(isset($record[$type])){
+        if (!empty($nullable)) {
+            foreach ($nullable as $type) {
+                if (isset($record[$type])) {
                     $record[$type] = null;
                 }
             }
         }
     }
-
-
 
 }
