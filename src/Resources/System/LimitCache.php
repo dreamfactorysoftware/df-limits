@@ -2,22 +2,15 @@
 namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Exceptions\BatchException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
-use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
-use DreamFactory\Core\Resources\System\Cache;
 use DreamFactory\Core\Utility\ResponseFactory;
-use League\Flysystem\Exception;
-use Symfony\Component\HttpFoundation\Response;
-
-use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
-
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use Illuminate\Contracts\Cache\Repository;
+use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
+use Illuminate\Cache\RateLimiter;
 
 class LimitCache extends BaseSystemResource
 {
@@ -69,6 +62,9 @@ class LimitCache extends BaseSystemResource
 
     }
 
+    /**
+     * @inheritdoc
+     */
     protected function handleGET()
     {
         $id = null;
@@ -79,15 +75,15 @@ class LimitCache extends BaseSystemResource
             $result = $this->getLimitsById($this->resource);
             return $result[0];
         } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->getLimitsByIds($ids, $params);
+            $result = $this->getOrClearLimits($ids, $params);
         } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            $result = $this->getLimitsByIds($records, $params);
+            $result = $this->getOrClearLimits($records, $params);
         } else {
             /* No id passed, get all limit cache entries */
             $dbLimits = LimitsModel::where('is_active', 1)->get(['id']);
             if(!empty($dbLimits)){
                 $records = $dbLimits->toArray();
-                $result  = $this->getLimitsByIds($records, $params);
+                $result  = $this->getOrClearLimits($records, $params);
             }
         }
 
@@ -99,7 +95,49 @@ class LimitCache extends BaseSystemResource
 
     }
 
-    protected function getLimitsByIds($records = array(), $params)
+    /**
+     * @inheritdoc
+     */
+    protected function handleDELETE()
+    {
+        $params = $this->request->getParameters();
+        if (isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)) {
+            $this->cache->flush();
+            $result = [
+                'success' => true
+            ];
+
+            return ResponseFactory::create($result);
+        }
+
+        if (!empty($this->resource)) {
+            $this->clearById($this->resource, $params);
+            $result = ['id' => (int)$this->resource];
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+            $result = $this->clearByIds($ids, $params);
+        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
+            $result = $this->clearByIds($records, $params);
+        } else {
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
+        }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+
+        return $result;
+    }
+
+    /**
+     * Multipurpose function to get or clear cache entries
+     * @param array $records - Records from GET or DELETE
+     * @param array $params - Any passed params, like continue
+     * @param bool  $clear - switches from get to clear a limit
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\BatchException
+     */
+    public function getOrClearLimits($records = array(), $params = array(), $clear = false)
     {
         $continue = (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
 
@@ -115,8 +153,13 @@ class LimitCache extends BaseSystemResource
         $invalid = false;
         foreach ($records as $k => $idRecord) {
             try {
-                $tmp = $this->getLimitsById($idRecord['id']);
-                $output[$k] = $tmp[0];
+                if($clear){
+                    $output[$k] = $this->clearById($idRecord['id']);
+                } else {
+                    $tmp = $this->getLimitsById($idRecord['id']);
+                    $output[$k] = $tmp[0];
+                }
+
             } catch (\Exception $e){
                 $invalid = true;
                 $output[$k] = $e;
@@ -132,6 +175,13 @@ class LimitCache extends BaseSystemResource
         }
     }
 
+    /**
+     * Gets a limit cache count values by limit ID
+     * @param $id - LimitId
+     *
+     * @return - Limit Cache entry
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
     protected function getLimitsById($id)
     {
         $limits = limitsModel::where('id', $id)->get();
@@ -193,6 +243,12 @@ class LimitCache extends BaseSystemResource
         }
     }
 
+    /**
+     * Gets attempts and retries left from a passed cache key.
+     * @param $keys - key to check
+     *
+     * @return array Enriched keys array
+     */
     protected function checkKeys($keys)
     {
         foreach ($keys as &$key) {
@@ -202,8 +258,13 @@ class LimitCache extends BaseSystemResource
         return $keys;
     }
 
-
-
+    /**
+     * Calculates attempts for a given cache key.
+     * @param $key - unique cache key.
+     * @param $max - max number of hits allowed for the limit.
+     *
+     * @return int
+     */
     protected function getAttempts($key, $max)
     {
         if ($this->cache->has($key)) {
@@ -215,6 +276,12 @@ class LimitCache extends BaseSystemResource
         }
     }
 
+    /**
+     * @param $key - unique cache key.
+     * @param $maxAttempts - Max number of attempts allowed
+     *
+     * @return int
+     */
     public function retriesLeft($key, $maxAttempts)
     {
         $attempts = $this->limiter->attempts($key);
@@ -225,37 +292,32 @@ class LimitCache extends BaseSystemResource
         return $attempts === 0 ? $maxAttempts : $maxAttempts - $attempts;
     }
 
-    protected function handleDELETE()
+    /**
+     * Override function for Clearing limits
+     * @param array $records
+     * @param array $params
+     * @param bool  $throw
+     *
+     * @return array
+     */
+    public function clearByIds($records = array(), $params = array(), $throw = true)
     {
-        $params = $this->request->getParameters();
-        $payload = $this->getPayloadData();
-        if (isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)) {
-            $this->cache->flush();
-            $result = [
-                'success' => true
-            ];
-
-            return ResponseFactory::create($result);
-        }
-
-        if (!empty($this->resource)) {
-            $this->clearById($this->resource, $params);
-            $result = ['id' => (int)$this->resource];
-        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->clearByIds($ids, $params);
-        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
-            $result = $this->clearByIds($records, $params);
-        } else {
-            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
-        }
-
-        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
-
-        return $result;
+        return $this->getOrClearLimits($records, $params, $throw);
     }
 
+    /**
+     * Clears a limit cache entry by individual ID with options.
+     * @param       $id limit to clear by id
+     * @param array $params
+     * @param bool  $throw - whether or not to throw an error. If being called
+     *                     from the Limit Model, need to quietly try to delete
+     *                     a limit from cache when a DELETE is called on the Limit
+     *                     entry. Not throwing an error here allows the BaseModel to do
+     *                     its job with invalid POSTS, etc.
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
     public function clearById($id, $params = array(), $throw = true)
     {
         $limitModel = new static::$model;
@@ -301,60 +363,10 @@ class LimitCache extends BaseSystemResource
         }
     }
 
-    public function clearByIds($records = array(), $params = array(), $throw = true)
-    {
-        $key = 'id';
-        $continue =
-            (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
-        if (isset($params['ids']) && !empty($params['ids'])) {
-            //$key = 'ids';
-            $idParts = explode(',', $params['ids']);
-            $records = array();
-            foreach ($idParts as $idPart) {
-                $records[] = ['id' => (int)$idPart];
-            }
-        }
-        $invalidIds = $validIds = [];
-        $limitModel = new static::$model;
-        $errors = [];
-        foreach ($records as $k => $idRecord) {
-            if (!$limitModel::where('id', $idRecord['id'])->exists()) {
-                $errors[] = $k;
-                $invalidIds[$k] = sprintf($this->notFoundStr, $idRecord['id']);
-                if (!$continue) {
-                    break;
-                }
-            } else {
-                $validIds[$k] = [$key => (int)$idRecord['id']];
-                $this->clearById($idRecord['id']);
-            }
-        }
-
-        if (!empty($invalidIds)) {
-            /* Build a proper response array -> order is indeed important here <- need to
-            /* preserve the keys to get the proper resource array order on batch operations */
-            $errors = ['error' => $errors];
-            /* Merge back in the two -> good and bad */
-            $records = array_replace($validIds, $invalidIds);
-            /* sort by keys */
-            ksort($records);
-            /* remove the keys */
-            $records = array_values($records);
-            /* wrap up the resources */
-            $resources = ResourcesWrapper::wrapResources($records);
-            /* build the context */
-            $context = $errors + $resources;
-            if($throw){
-                throw new BadRequestException('Batch Error: Not all records could be deleted.',
-                    Response::HTTP_INTERNAL_SERVER_ERROR,
-                    null, $context);
-            }
-
-        } else {
-            return $validIds;
-        }
-    }
-
+    /**
+     * Clears and removes a key entry.
+     * @param $key limit cache unique key
+     */
     protected function clearKey($key)
     {
         /* Clears for locked-out conditions */
