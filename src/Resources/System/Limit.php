@@ -37,7 +37,7 @@ class Limit extends BaseSystemResource
 
     public function __construct()
     {
-        $this->cache = new LimitCache();
+        $this->cache = new LimitCache(false);
         $this->limitModel = new static::$model;
     }
 

@@ -47,16 +47,18 @@ class LimitCache extends BaseSystemResource
      */
     protected $notFoundStr = "Record with identifier '%s' not found.";
 
+    protected $isThrowable = true;
+
     /**
      * Create a new request throttler.
+     * LimitCache constructor.
      *
-     * @param  \Illuminate\Cache\RateLimiter $limiter
-     *
-     * @return void
+     * @param bool $throw_errs
      */
-    public function __construct()
+    public function __construct($throw_errs = true)
     {
         $this->cache = app('cache')->store('limit');
+        $this->isThrowable = $throw_errs;
         $this->limiter = new RateLimiter($this->cache);
         $this->limitsModel = new static::$model;
 
@@ -75,15 +77,15 @@ class LimitCache extends BaseSystemResource
             $result = $this->getLimitsById($this->resource);
             return $result[0];
         } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->getOrClearLimits($ids, $params);
+            $result = $this->getOrClearLimits($ids, $params, false);
         } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            $result = $this->getOrClearLimits($records, $params);
+            $result = $this->getOrClearLimits($records, $params, false);
         } else {
             /* No id passed, get all limit cache entries */
             $dbLimits = LimitsModel::where('is_active', 1)->get(['id']);
             if(!empty($dbLimits)){
                 $records = $dbLimits->toArray();
-                $result  = $this->getOrClearLimits($records, $params);
+                $result  = $this->getOrClearLimits($records, $params, false);
             }
         }
 
@@ -169,7 +171,11 @@ class LimitCache extends BaseSystemResource
             }
         }
         if ($invalid) {
-            throw new BatchException($output, 'Batch Error: Not all requested records could be retrieved.');
+            if($this->isThrowable){
+                $errString = sprintf('Batch Error: Not all requested records could be %s.', ($clear) ? 'deleted' : 'retrieved');
+                throw new BatchException($output, $errString);
+            }
+
         } else {
             return $output;
         }
@@ -239,7 +245,9 @@ class LimitCache extends BaseSystemResource
 
             return $checkKeys;
         } else {
-            throw new NotFoundException(sprintf($this->notFoundStr, $id));
+            if($this->isThrowable){
+                throw new NotFoundException(sprintf($this->notFoundStr, $id));
+            }
         }
     }
 
@@ -300,9 +308,9 @@ class LimitCache extends BaseSystemResource
      *
      * @return array
      */
-    public function clearByIds($records = array(), $params = array(), $throw = true)
+    public function clearByIds($records = array(), $params = array(), $clear = true)
     {
-        return $this->getOrClearLimits($records, $params, $throw);
+        return $this->getOrClearLimits($records, $params, $clear);
     }
 
     /**
