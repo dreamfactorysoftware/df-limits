@@ -114,11 +114,11 @@ class Limit extends BaseSystemResource
         $params = $this->request->getParameters();
 
         if (!empty($this->resource)) {
-            $result = $this->cache->clearById($this->resource, $params, false);
+            $result = $this->cache->clearById($this->resource, $params, true);
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->cache->getOrClearLimits($ids, $params, false);
+            $result = $this->cache->getOrClearLimits($ids, $params, true);
         } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
-            $result = $this->cache->getOrClearLimits($records, $params, false);
+            $result = $this->cache->getOrClearLimits($records, $params, true);
         } else {
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
