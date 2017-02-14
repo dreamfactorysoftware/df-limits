@@ -82,7 +82,7 @@ class LimitCache extends BaseSystemResource
             $result = $this->getOrClearLimits($records, $params, false);
         } else {
             /* No id passed, get all limit cache entries */
-            $dbLimits = LimitsModel::where('is_active', 1)->get(['id']);
+            $dbLimits = LimitsModel::get(['id']);
             if(!empty($dbLimits)){
                 $records = $dbLimits->toArray();
                 $result  = $this->getOrClearLimits($records, $params, false);
@@ -141,7 +141,7 @@ class LimitCache extends BaseSystemResource
      */
     public function getOrClearLimits($records = array(), $params = array(), $clear = false)
     {
-        $continue = (isset($params['continue']) && !filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? false : true;
+        $continue = (isset($params['continue']) && filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? true : false;
 
         if (isset($params['ids']) && !empty($params['ids'])) {
             $idParts = explode(',', $params['ids']);
