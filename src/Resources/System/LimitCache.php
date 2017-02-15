@@ -167,7 +167,7 @@ class LimitCache extends BaseSystemResource
             }
         }
 
-        $output = [];
+        $output = array();
         $invalid = false;
         foreach ($records as $k => $idRecord) {
             try {
@@ -192,7 +192,7 @@ class LimitCache extends BaseSystemResource
                 throw new BatchException($output, $errString);
             }
         } else {
-            return $output;
+            return (isset($output[0][0]['id'])) ? $output[0] : $output;
         }
     }
 
