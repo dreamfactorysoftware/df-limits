@@ -172,14 +172,20 @@ class LimitCache extends BaseSystemResource
         foreach ($records as $k => $idRecord) {
             try {
                 if ($clear) {
-                    $output[$k] = $this->clearById($idRecord['id']);
+                    $output[] = $this->clearById($idRecord['id']);
                 } else {
-                    $tmp = $this->getLimitsById($idRecord['id']);
-                    $output[$k] = (count($tmp) > 1) ? $tmp : $tmp[0];
+                    $tmpArr = $this->getLimitsById($idRecord['id']);
+                    if(count($tmpArr) > 1){
+                        foreach($tmpArr as $item){
+                            $output[] = $item;
+                        }
+                    } else {
+                        $output[] = $tmpArr[0];
+                    }
                 }
             } catch (\Exception $e) {
                 $invalid = true;
-                $output[$k] = $e;
+                $output[] = $e;
                 if (!$continue) {
                     break;
                 }
@@ -469,7 +475,7 @@ class LimitCache extends BaseSystemResource
         return false;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    /*public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
@@ -530,5 +536,5 @@ class LimitCache extends BaseSystemResource
         ];
 
         return ['paths' => $apis, 'definitions' => []];
-    }
+    }*/
 }
