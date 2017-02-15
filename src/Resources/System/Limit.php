@@ -245,10 +245,24 @@ class Limit extends BaseSystemResource
     {
         /* If Admin is changing the rate, check for lockout condition */
         if ($dbRecord['rate'] <> $record['rate']) {
-            if ($this->cache->hasLockout($dbRecord['key_text'])) {
-                /* If It's locked out, let's reset the counter value to allow for rate  increase, etc. */
-                $this->cache->clearById($dbRecord['id']);
+
+            /* Check for an each user condition */
+            if(in_array($dbRecord['type'], LimitsModel::$eachUserTypes)){
+                $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
+                foreach($users as $checkUser){
+                    $chkKey = $this->limitModel->resolveCheckKey($dbRecord['type'], $checkUser['id'], $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['period']);
+                    if($this->cache->hasLockout($chkKey)){
+                        $this->cache->clearById($dbRecord['id']);
+                    }
+                }
+            } else {
+                /* Regular condition */
+                if ($this->cache->hasLockout($dbRecord['key_text'])) {
+                    /* If It's locked out, let's reset the counter value to allow for rate  increase, etc. */
+                    $this->cache->clearById($dbRecord['id']);
+                }
             }
+
         }
 
     }

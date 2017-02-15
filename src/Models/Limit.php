@@ -10,13 +10,13 @@ class Limit extends BaseSystemModel
     protected $table = 'limits';
 
     public static $limitTypes = [
-        'instance'                       => 'instance',
-        'instance.user'                  => 'instance.user:%s',
-        'instance.each_user'             => 'instance.each_user:%s',
-        'instance.user.service'          => 'instance.user:%s.service:%s',
-        'instance.each_useruser.service' => 'instance.each_user:%s.service:%s',
-        'instance.service'               => 'instance.service:%s',
-        'instance.role'                  => 'instance.role:%s',
+        'instance'                   => 'instance',
+        'instance.user'              => 'instance.user:%s',
+        'instance.each_user'         => 'instance.each_user:%s',
+        'instance.user.service'      => 'instance.user:%s.service:%s',
+        'instance.each_user.service' => 'instance.each_user:%s.service:%s',
+        'instance.service'           => 'instance.service:%s',
+        'instance.role'              => 'instance.role:%s',
     ];
 
     public static $eachUserTypes = ['instance.each_user', 'instance.each_user.service'];
