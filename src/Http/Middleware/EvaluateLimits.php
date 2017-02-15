@@ -63,10 +63,17 @@ class EvaluateLimits
         $overLimit = [];
 
         /* check for user overrides */
-        $userOverrides = [];
+        $overrides = ['user', 'service'];
         foreach ($limits as $limit) {
-            if ($limit->type == 'instance.user' && !is_null($limit->user_id)) {
-                $userOverrides[] = $limit->user_id;
+            if (!is_null($limit->user_id)) {
+                switch ($limit->type) {
+                    case 'instance.user':
+                        $overrides['user'][] = $limit->user_id;
+                        break;
+                    case 'instance.user.service':
+                        $overrides['service'][] = $limit->user_id;
+                        break;
+                }
             }
         }
 
@@ -80,24 +87,32 @@ class EvaluateLimits
             /* to ensure that a specific user limit overrides the each user limit. */
             if (is_null($dbUser) &&
                 $isUserLimit &&
-                !is_null($userId) &&
-                !in_array($userId, $userOverrides)
+                !is_null($userId)
             ) {
                 $dbUser = $userId;
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
             $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $limit->period);
 
             if ($checkKey == $derivedKey) {
 
-                if ( ! $isUserLimit || ($isUserLimit && ! is_null($token))) {
+                if (!$isUserLimit || ($isUserLimit && !is_null($token))) {
 
-                    if ($this->limiter->tooManyAttempts($checkKey, $limit->rate,
-                        Limit::$limitIntervals[$limit->period])
+                    if ($this->limiter->tooManyAttempts($checkKey, $limit->rate, Limit::$limitIntervals[$limit->period])
                     ) {
+                        /**
+                         * Checks that the current user is not in the override structures for user and service. This would override
+                            a specific user condition against an each_user condition. However, counters will get ticked regardless.
+                         * This will skip the overLimit condition for the each_user evaluation.
+                         */
+
+                        if($limit->type == 'instance.each_user' && in_array($userId, $overrides['user']) ||
+                            $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service'])){
+                            continue;
+                        }
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
@@ -111,7 +126,8 @@ class EvaluateLimits
         }
 
         if (!empty($overLimit)) {
-            $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null, $overLimit));
+            $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null,
+                    $overLimit));
 
             return $this->addHeaders(
                 $response, $limit->rate,
