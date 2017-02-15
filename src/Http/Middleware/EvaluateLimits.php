@@ -65,7 +65,7 @@ class EvaluateLimits
         /* check for user overrides */
         $userOverrides = [];
         foreach ($limits as $limit) {
-            if (in_array($limit->type, $limitModel::$eachUserTypes)) {
+            if ($limit->type == 'instance.user' && !is_null($limit->user_id)) {
                 $userOverrides[] = $limit->user_id;
             }
         }
