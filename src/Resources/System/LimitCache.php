@@ -175,7 +175,7 @@ class LimitCache extends BaseSystemResource
                     $output[$k] = $this->clearById($idRecord['id']);
                 } else {
                     $tmp = $this->getLimitsById($idRecord['id']);
-                    $output[$k] = $tmp[0];
+                    $output[$k] = (count($tmp) > 1) ? $tmp : $tmp[0];
                 }
             } catch (\Exception $e) {
                 $invalid = true;
