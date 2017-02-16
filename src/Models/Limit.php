@@ -12,9 +12,9 @@ class Limit extends BaseSystemModel
     public static $limitTypes = [
         'instance'                   => 'instance',
         'instance.user'              => 'instance.user:%s',
-        'instance.each_user'         => 'instance.each_user:%s',
+        'instance.each_user'         => 'instance.each_user',
         'instance.user.service'      => 'instance.user:%s.service:%s',
-        'instance.each_user.service' => 'instance.each_user:%s.service:%s',
+        'instance.each_user.service' => 'instance.each_user.service:%s',
         'instance.service'           => 'instance.service:%s',
         'instance.role'              => 'instance.role:%s',
     ];
