@@ -118,6 +118,11 @@ class Limit extends BaseSystemModel
         return ($value === 1) ? true : false;
     }
 
+    public function getPeriodAttribute($value)
+    {
+        return static::$limitPeriods[$value];
+    }
+
     /**
      * {@inheritdoc}
      */
