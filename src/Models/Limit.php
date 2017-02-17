@@ -12,9 +12,9 @@ class Limit extends BaseSystemModel
     public static $limitTypes = [
         'instance'                   => 'instance',
         'instance.user'              => 'instance.user:%s',
-        'instance.each_user'         => 'instance.each_user',
+        'instance.each_user'         => 'instance.each_user:%s',
         'instance.user.service'      => 'instance.user:%s.service:%s',
-        'instance.each_user.service' => 'instance.each_user.service:%s',
+        'instance.each_user.service' => 'instance.each_user:%s.service:%s',
         'instance.service'           => 'instance.service:%s',
         'instance.role'              => 'instance.role:%s',
     ];
@@ -118,10 +118,6 @@ class Limit extends BaseSystemModel
         return ($value === 1) ? true : false;
     }
 
-    public function getPeriodAttribute($value)
-    {
-        return static::$limitPeriods[$value];
-    }
 
     /**
      * {@inheritdoc}

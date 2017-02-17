@@ -224,7 +224,18 @@ class Limit extends BaseSystemResource
             $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
         }
 
-        return parent::handlePATCH();
+        $returnData = parent::handlePATCH();
+        if (isset($returnData['resource']) && is_array($returnData['resource'])) {
+            foreach ($returnData['resource'] as &$return) {
+                if (isset($return['period'])) {
+                    $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+            }
+        } else if(isset($returnData['period'])){
+            $returnData['period'] = LimitsModel::$limitPeriods[$returnData['period']];
+        }
+
+        return $returnData;
     }
 
     /**
