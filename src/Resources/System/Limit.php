@@ -50,7 +50,9 @@ class Limit extends BaseSystemResource
         $response = parent::handleGET();
         if (isset($response['resource']) && !empty($response['resource'])) {
             foreach ($response['resource'] as &$resourceLimit) {
-                $resourceLimit['period'] = $this->resolveLimitPeriod($resourceLimit['period']);
+                if (isset($resourceLimit['period']) && !empty($resourceLimit['period'])) {
+                    $resourceLimit['period'] = $this->resolveLimitPeriod($resourceLimit['period']);
+                }
             }
         } else {
             if (isset($response['period']) && !empty($response['period'])) {
