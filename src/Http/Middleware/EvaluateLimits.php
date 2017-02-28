@@ -44,7 +44,6 @@ class EvaluateLimits
      */
     function handle($request, Closure $next)
     {
-
         $limitModel = new Limit();
         $userId = Session::getCurrentUserId();
         $roleId = Session::getRoleId();
