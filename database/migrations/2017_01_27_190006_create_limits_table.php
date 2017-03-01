@@ -21,14 +21,18 @@ class CreateLimitsTable extends Migration
                 $t->string('key_text', 100)->unique();
                 $t->integer('rate');
                 $t->integer('period');
-                $t->mediumInteger('user_id')->nullable();
-                $t->mediumInteger('role_id')->nullable();
-                $t->mediumInteger('service_id')->nullable();
+                $t->integer('user_id')->unsigned()->nullable();
+                $t->foreign('user_id')->references('id')->on('user');
+                $t->integer('role_id')->unsigned()->nullable();
+                $t->foreign('role_id')->references('id')->on('user');
+                $t->integer('service_id')->unsigned()->nullable();
+                $t->foreign('service_id')->references('id')->on('service');
                 $t->string('name');
                 $t->string('label')->nullable();
                 $t->tinyInteger('is_active')->default(1);
                 $t->timestamp('created_date')->nullable();
                 $t->timestamp('last_modified_date')->nullable();
+                /* Foreign keys for references */
             }
         );
     }
