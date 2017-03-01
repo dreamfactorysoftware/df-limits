@@ -24,7 +24,7 @@
   },
   "autoload": {
     "psr-4": {
-      "DreamFactory\\Core\\Limits\\": "src/"
+      "DreamFactory\\Core\\Limit\\": "src/"
     }
   },
   "extra": {
