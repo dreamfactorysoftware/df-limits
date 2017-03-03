@@ -16,7 +16,7 @@ class CreateLimitsTable extends Migration
         Schema::create(
             'limits',
             function (Blueprint $t){
-                $t->bigIncrements('id')->unsigned();
+                $t->increments('id')->unsigned();
                 $t->string('type', 50);
                 $t->string('key_text', 100)->unique();
                 $t->integer('rate');
@@ -28,11 +28,10 @@ class CreateLimitsTable extends Migration
                 $t->integer('service_id')->unsigned()->nullable();
                 $t->foreign('service_id')->references('id')->on('service');
                 $t->string('name');
-                $t->string('label')->nullable();
+                $t->string('description')->nullable();
                 $t->tinyInteger('is_active')->default(1);
                 $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->nullable();
-                /* Foreign keys for references */
+                $t->timestamp('last_modified_date')->useCurrent();
             }
         );
     }

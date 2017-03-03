@@ -21,7 +21,6 @@ class Limit extends BaseSystemModel
 
     public static $eachUserTypes = ['instance.each_user', 'instance.each_user.service'];
 
-
     public static $limitPeriods = [
         'minute',
         'hour',
@@ -56,11 +55,10 @@ class Limit extends BaseSystemModel
         'role_id',
         'service_id',
         'name',
-        'label',
+        'description',
         'period',
         'key_text',
-        'is_active'
-
+        'is_active',
     ];
 
     /**
@@ -69,7 +67,7 @@ class Limit extends BaseSystemModel
      * @param $limitType
      * @param $userId
      * @param $roleId
-     * @param $service
+     * @param $serviceId
      * @param $limitPeriod
      *
      * @return string
@@ -85,7 +83,7 @@ class Limit extends BaseSystemModel
 
                 case 'instance.user':
                 case 'instance.each_user':
-                $key = sprintf(static::$limitTypes[$limitType], $userId);
+                    $key = sprintf(static::$limitTypes[$limitType], $userId);
                     break;
 
                 case 'instance.role':
@@ -110,7 +108,7 @@ class Limit extends BaseSystemModel
     /**
      * Get the active indicator and return bool
      *
-     * @param  string  $value
+     * @param  string $value
      * @return Bool
      */
     public function getIsActiveAttribute($value)
@@ -118,16 +116,14 @@ class Limit extends BaseSystemModel
         return ($value === 1) ? true : false;
     }
 
-
     /**
      * {@inheritdoc}
      */
     public function validate(array $data = [], $throwException = true)
     {
-        $this->rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods)-1)));
-        $this->rules['type']   .= '|in:' . implode(',', array_keys(static::$limitTypes));
+        $this->rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods) - 1)));
+        $this->rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
 
         return parent::validate($data, $throwException);
     }
-
 }

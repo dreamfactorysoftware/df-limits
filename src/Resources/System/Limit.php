@@ -10,8 +10,6 @@ use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Limit\Resources\System\LimitCache as Cache;
-use Symfony\Component\HttpFoundation\Response;
 
 class Limit extends BaseSystemResource
 {
@@ -78,7 +76,6 @@ class Limit extends BaseSystemResource
      */
     protected function handlePOST()
     {
-
         /* First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         $isRollback = $this->request->getParameter('rollback');
@@ -135,7 +132,6 @@ class Limit extends BaseSystemResource
      */
     protected function handlePATCH()
     {
-
         $params = $this->request->getParameters();
 
         $payload = $this->getPayloadData();
@@ -233,8 +229,10 @@ class Limit extends BaseSystemResource
                     $return['period'] = LimitsModel::$limitPeriods[$return['period']];
                 }
             }
-        } else if(isset($returnData['period'])){
-            $returnData['period'] = LimitsModel::$limitPeriods[$returnData['period']];
+        } else {
+            if (isset($returnData['period'])) {
+                $returnData['period'] = LimitsModel::$limitPeriods[$returnData['period']];
+            }
         }
 
         return $returnData;
@@ -260,11 +258,12 @@ class Limit extends BaseSystemResource
         if ($dbRecord['rate'] <> $record['rate']) {
 
             /* Check for an each user condition */
-            if(in_array($dbRecord['type'], LimitsModel::$eachUserTypes)){
+            if (in_array($dbRecord['type'], LimitsModel::$eachUserTypes)) {
                 $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
-                foreach($users as $checkUser){
-                    $chkKey = $this->limitModel->resolveCheckKey($dbRecord['type'], $checkUser['id'], $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['period']);
-                    if($this->cache->hasLockout($chkKey)){
+                foreach ($users as $checkUser) {
+                    $chkKey = $this->limitModel->resolveCheckKey($dbRecord['type'], $checkUser['id'],
+                        $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['period']);
+                    if ($this->cache->hasLockout($chkKey)) {
                         $this->cache->clearById($dbRecord['id']);
                     }
                 }
@@ -297,11 +296,6 @@ class Limit extends BaseSystemResource
                 $this->limitModel->resolveCheckKey($record['type'], $record['user_id'], $record['role_id'],
                     $record['service_id'], $limitPeriodNumber);
             $record['key_text'] = $key;
-
-            /* If record_label is not set, set it to name */
-            if (!isset($record['label']) || is_null($record['label'])) {
-                $record['label'] = $record['name'];
-            }
 
             /* limits are active by default, but in case of deactivation, set the limit inactive */
             if (isset($record['is_active']) && !filter_var($record['is_active'], FILTER_VALIDATE_BOOLEAN)) {
@@ -398,7 +392,7 @@ class Limit extends BaseSystemResource
         return Service::where('id', $id)->exists();
     }
 
-    protected function nullify(&$record, $nullable = array())
+    protected function nullify(&$record, $nullable = [])
     {
         if (!empty($nullable)) {
             foreach ($nullable as $type) {
