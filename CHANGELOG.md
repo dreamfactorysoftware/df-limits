@@ -6,12 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 ### Fixed
-- Fields confirmed and confirm_code now updated upon invitation being sent
 
-## [0.6.0] - 2016-11-17
-### Added
-- DF-887 Adding system/admin API doc and events for password, profile and session resources
+## [0.1.0] - 2017-03-03
+First official release of this library.
 
-
-[Unreleased]: https://github.com/dreamfactorysoftware/df-user/compare/0.6.0...HEAD
-[0.6.0]: https://github.com/dreamfactorysoftware/df-user/compare/0.5.0...0.6.0
+[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.1.0...HEAD
