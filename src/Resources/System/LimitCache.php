@@ -475,7 +475,7 @@ class LimitCache extends BaseSystemResource
         return false;
     }
 
-    /*public static function getApiDocInfo($service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
@@ -483,11 +483,30 @@ class LimitCache extends BaseSystemResource
         $path = '/' . $serviceName . '/' . $resourceName;
 
         $apis = [
-            $path           => [
+            $path => [
                 'delete' => [
                     'tags'        => [$serviceName],
                     'summary'     => 'deleteAllLimitCache() - Delete all Limits cache.',
                     'operationId' => 'deleteAllLimitCache',
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'consumes'    => ['application/json', 'application/xml'],
+                    'produces'    => ['application/json', 'application/xml'],
+                    'description' => 'This clears and resets all limits cache counters in the system.',
+                ],
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getSystemLimitCache() - Retrieve one or more Limit Cache entries.',
+                    'operationId' => 'getSystemLimitCache',
                     'parameters'  => [],
                     'responses'   => [
                         '200'     => [
@@ -532,9 +551,37 @@ class LimitCache extends BaseSystemResource
                     ],
                     'description' => 'This will reset the limit counter for a specific limit Id.',
                 ],
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getSystemLimitCache() - Retrieve one Limit Cache entry.',
+                    'operationId' => 'getSystemLimitCache',
+                    'consumes'    => ['application/json', 'application/xml'],
+                    'produces'    => ['application/json', 'application/xml'],
+                    'parameters'  => [
+                        [
+                            'name'        => 'id',
+                            'description' => 'Identifier of the limit for the cache entry.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This will retrieve the limit counts for a specific limit Id.',
+                ],
             ],
         ];
 
+
         return ['paths' => $apis, 'definitions' => []];
-    }*/
+    }
 }

@@ -44,7 +44,6 @@ class EvaluateLimits
      */
     function handle($request, Closure $next)
     {
-
         $limitModel = new Limit();
         $userId = Session::getCurrentUserId();
         $roleId = Session::getRoleId();
@@ -116,7 +115,6 @@ class EvaluateLimits
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
-                            'label' => $limit->label
                         ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
