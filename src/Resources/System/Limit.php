@@ -320,7 +320,7 @@ class Limit extends BaseSystemResource
         switch ($record['type']) {
             case 'instance':
             case 'instance.each_user':
-                $this->nullify($record, ['user_id', 'role_id', 'service_id']);
+                $this->nullify($record, ['user_id', 'role_id', 'service_id', 'endpoint']);
                 break;
 
             case 'instance.user':
@@ -332,7 +332,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkUser($record['user_id']) && $record['user_id'] !== '*') {
                     throw new BadRequestException('user_id does not exist for ' . $record['name'] . ' limit.');
                 }
-                $this->nullify($record, ['role_id', 'service_id']);
+                $this->nullify($record, ['role_id', 'service_id', 'endpoint']);
 
                 break;
 
@@ -346,7 +346,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkRole($record['role_id'])) {
                     throw new BadRequestException('No role_id exists for ' . $record['name'] . ' limit.');
                 }
-                $this->nullify($record, ['user_id', 'service_id']);
+                $this->nullify($record, ['user_id', 'service_id', 'endpoint']);
 
                 break;
 
@@ -364,7 +364,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkService($record['service_id'])) {
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
-                $this->nullify($record, ['role_id']);
+                $this->nullify($record, ['role_id', 'endpoint']);
 
                 break;
 
@@ -378,7 +378,7 @@ class Limit extends BaseSystemResource
                 if (!$this->checkService($record['service_id'])) {
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
-                $this->nullify($record, ['user_id', 'role_id']);
+                $this->nullify($record, ['user_id', 'role_id', 'endpoint']);
                 break;
 
             case 'instance.service.endpoint':
@@ -445,7 +445,7 @@ class Limit extends BaseSystemResource
         return true;
     }
 
-    protected function validateEndpoint($endpoint, $serviceId)
+    protected function validateEndpoint(&$endpoint, $serviceId)
     {
         //TODO:Add validate endpoint code
 

@@ -86,8 +86,8 @@ class EvaluateLimits
             $dbUser = $limit->user_id;
 
             /** Process all verbs unless it is specified in the db for that limit. */
-            $dbVerb = (!is_null($limit->verb)) ?: null;
-            $derivedVerb = (!is_null($limit->verb)) ?: null;
+            $dbVerb = (!is_null($limit->verb)) ? $limit->verb : null;
+            $derivedVerb = (!is_null($limit->verb)) ? $method : null;
 
             $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 
