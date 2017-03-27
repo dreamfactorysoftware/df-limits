@@ -270,7 +270,7 @@ class Limit extends BaseSystemResource
                 $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
                 foreach ($users as $checkUser) {
                     $chkKey = $this->limitModel->resolveCheckKey($dbRecord['type'], $checkUser['id'],
-                        $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['period']);
+                        $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['endpoint'], $dbRecord['verb'], $dbRecord['period']);
                     if ($this->cache->hasLockout($chkKey)) {
                         $this->cache->clearById($dbRecord['id']);
                     }
@@ -299,6 +299,10 @@ class Limit extends BaseSystemResource
         if ($this->validateLimitPayload($record)) {
             /* set the resolved limit period number */
             $record['period'] = $limitPeriodNumber;
+            /** Check for verb - default state is null for all verbs. */
+            if(!isset($record['verb'])){
+                $record['verb'] = null;
+            }
 
             $key =
                 $this->limitModel->resolveCheckKey($record['type'], $record['user_id'], $record['role_id'],
@@ -471,9 +475,7 @@ class Limit extends BaseSystemResource
     {
         if (!empty($nullable)) {
             foreach ($nullable as $type) {
-                if (isset($record[$type])) {
-                    $record[$type] = null;
-                }
+                $record[$type] = null;
             }
         }
     }
