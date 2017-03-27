@@ -18,7 +18,7 @@ class Limit extends BaseSystemModel
         'instance.service'                    => 'instance.service:%s',
         'instance.service.endpoint'           => 'instance.service:%s.endpoint:%s',
         'instance.user.service.endpoint'      => 'instance.user:%s.service:%s.endpoint:%s',
-        'instance.each_user.service.endpoint' => 'instance.each_user.service:%s.endpoint:%s',
+        'instance.each_user.service.endpoint' => 'instance.each_user:%s.service:%s.endpoint:%s',
         'instance.role'                       => 'instance.role:%s',
     ];
 
