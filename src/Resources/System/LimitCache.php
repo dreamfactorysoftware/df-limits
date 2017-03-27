@@ -330,6 +330,17 @@ class LimitCache extends BaseSystemResource
     }
 
     /**
+     * Get the number of seconds until the "key" is accessible again.
+     *
+     * @param  string  $key
+     * @return int
+     */
+    public function availableIn($key)
+    {
+        return $this->limiter->availableIn($key);
+    }
+
+    /**
      * Override function for Clearing limits
      *
      * @param array $records
