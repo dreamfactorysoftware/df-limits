@@ -105,18 +105,24 @@ class Limit extends BaseSystemModel
                 case 'instance.each_user.service':
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId);
                     break;
+
                 case 'instance.service':
                     $key = sprintf(static::$limitTypes[$limitType], $serviceId);
                     break;
+
                 case 'instance.service.endpoint':
-                case 'instance.each_user.service.endpoint':
 
                     $typeStr = static::$limitTypes[$limitType];
                     $key = sprintf($typeStr, $serviceId, $endpoint);
                 break;
+
                 case 'instance.user.service.endpoint':
 
                     $typeStr = static::$limitTypes[$limitType];
+                    $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
+                break;
+
+                case 'instance.each_user.service.endpoint':
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
                     break;
             }
