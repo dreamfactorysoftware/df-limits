@@ -27,6 +27,8 @@ class CreateLimitsTable extends Migration
                 $t->foreign('role_id')->references('id')->on('role');
                 $t->integer('service_id')->unsigned()->nullable();
                 $t->foreign('service_id')->references('id')->on('service');
+                $t->text('endpoint')->nullable();
+                $t->enum('verb', array('GET', 'POST', 'PUT', 'PATCH', 'DELETE'))->nullable();
                 $t->string('name');
                 $t->string('description')->nullable();
                 $t->tinyInteger('is_active')->default(1);

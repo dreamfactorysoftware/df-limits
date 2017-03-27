@@ -13,6 +13,8 @@ use DreamFactory\Core\Models\Service;
 use Carbon\Carbon;
 use Route;
 use Closure;
+use Log;
+
 
 class EvaluateLimits
 {
@@ -54,7 +56,11 @@ class EvaluateLimits
         if ($isAdmin) {
             return $next($request);
         }
+
         $routeService = Route::getCurrentRoute()->parameter('service');
+        $routeResource = Route::getcurrentRoute()->parameter('resource');
+        $method = $request->method();
+
         $service = Service::where('name', $routeService)->first();
 
         /* Important - only evaluate against active limits */
@@ -92,9 +98,9 @@ class EvaluateLimits
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $limit->verb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $limit->period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $routeResource, $method, $limit->period);
 
             if ($checkKey == $derivedKey) {
 
@@ -130,7 +136,7 @@ class EvaluateLimits
             return $this->addHeaders(
                 $response, $limit->rate,
                 $this->calculateRemainingAttempts($checkKey, $limit->rate),
-                true
+                $this->limiter->availableIn($checkKey)
             );
         }
 

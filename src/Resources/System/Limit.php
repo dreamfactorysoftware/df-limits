@@ -26,6 +26,14 @@ class Limit extends BaseSystemResource
         '30 Days' => DateTimeIntervals::MINUTES_PER_MONTH,
     ];
 
+    protected $allowedVerbs = [
+        'GET',
+        'POST',
+        'PUT',
+        'PATCH',
+        'DELETE'
+    ];
+
     /**
      * The limiter cache store.
      *
@@ -294,7 +302,7 @@ class Limit extends BaseSystemResource
 
             $key =
                 $this->limitModel->resolveCheckKey($record['type'], $record['user_id'], $record['role_id'],
-                    $record['service_id'], $limitPeriodNumber);
+                    $record['service_id'], $record['endpoint'], $record['verb'], $limitPeriodNumber);
             $record['key_text'] = $key;
 
             /* limits are active by default, but in case of deactivation, set the limit inactive */
@@ -372,7 +380,74 @@ class Limit extends BaseSystemResource
                 }
                 $this->nullify($record, ['user_id', 'role_id']);
                 break;
+
+            case 'instance.service.endpoint':
+            case 'instance.each_user.service.endpoint':
+
+                if (!isset($record['service_id']) || is_null($record['service_id'])) {
+                    throw new BadRequestException('service_id must be specified with this limit type.');
+                }
+
+                if (!$this->checkService($record['service_id'])) {
+                    throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
+                }
+
+                if (!isset($record['endpoint']) || is_null($record['endpoint'])) {
+                    throw new BadRequestException('endpoint must be specified with this limit type.');
+                }
+
+                if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
+                    throw new BadRequestException('Verb is invalid or not allowed.');
+                }
+
+                if(!$this->validateEndpoint($record['endpoint'], $record['service_id'])){
+                    throw new BadRequestException('endpoint is not valid for the service.');
+
+                }
+
+                $this->nullify($record, ['user_id', 'role_id']);
+
+                break;
+
+            case 'instance.user.service.endpoint':
+
+                if (!isset($record['user_id']) || is_null($record['user_id'])) {
+                    throw new BadRequestException('user_id must be specified with this limit type. Limit: ' .
+                        $record['name']);
+                }
+
+                if (!$this->checkUser($record['user_id']) && $record['user_id'] !== '*') {
+                    throw new BadRequestException('No user_id exists for ' . $record['name'] . ' limit.');
+                }
+
+                if (!$this->checkService($record['service_id'])) {
+                    throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
+                }
+
+                if (!isset($record['endpoint']) || is_null($record['endpoint'])) {
+                    throw new BadRequestException('endpoint must be specified with this limit type.');
+                }
+
+                if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
+                    throw new BadRequestException('Verb is invalid or not allowed.');
+                }
+
+                if(!$this->validateEndpoint($record['endpoint'], $record['service_id'])){
+                    throw new BadRequestException('endpoint is not valid for the service.');
+
+                }
+
+                $this->nullify($record, ['role_id']);
+
+                break;
         }
+
+        return true;
+    }
+
+    protected function validateEndpoint($endpoint, $serviceId)
+    {
+        //TODO:Add validate endpoint code
 
         return true;
     }
