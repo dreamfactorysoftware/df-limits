@@ -97,6 +97,11 @@ class EvaluateLimits
                 $dbUser = $userId;
             }
 
+            /** Process all verbs unless it is specified (endpoint mods) */
+            if(is_null($limit->verb)){
+                $limit->verb = $method;
+            }
+
             /* $checkKey key built from the database - these are the conditions we're checking for */
             $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $limit->verb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
