@@ -84,6 +84,11 @@ class EvaluateLimits
 
         foreach ($limits as $limit) {
             $dbUser = $limit->user_id;
+
+            /** Process all verbs unless it is specified in the db for that limit. */
+            $dbVerb = (!is_null($limit->verb)) ?: null;
+            $derivedVerb = (!is_null($limit->verb)) ?: null;
+
             $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 
             /* This checks for an "Each User" condition, where the limit would apply to every user
@@ -97,15 +102,10 @@ class EvaluateLimits
                 $dbUser = $userId;
             }
 
-            /** Process all verbs unless it is specified (endpoint mods) */
-            if(is_null($limit->verb)){
-                $limit->verb = $method;
-            }
-
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $limit->verb, $limit->period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $routeResource, $method, $limit->period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $routeResource, $derivedVerb, $limit->period);
 
             if ($checkKey == $derivedKey) {
 

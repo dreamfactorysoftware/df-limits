@@ -22,7 +22,11 @@ class Limit extends BaseSystemModel
         'instance.role'                       => 'instance.role:%s',
     ];
 
-    public static $eachUserTypes = ['instance.each_user', 'instance.each_user.service'];
+    public static $eachUserTypes = [
+        'instance.each_user',
+        'instance.each_user.service',
+        'instance.each_user.service.endpoint'
+    ];
 
     public static $limitPeriods = [
         'minute',
@@ -73,6 +77,8 @@ class Limit extends BaseSystemModel
      * @param $userId
      * @param $roleId
      * @param $serviceId
+     * @param $endpoint
+     * @param $verb
      * @param $limitPeriod
      *
      * @return string
@@ -106,30 +112,20 @@ class Limit extends BaseSystemModel
                 case 'instance.each_user.service.endpoint':
 
                     $typeStr = static::$limitTypes[$limitType];
-                    /** if a valid verb is passed, concat it on. */
-                    if(!is_null($verb)){
-                        $typeStr .= '.verb:%s';
-                        $key = sprintf($typeStr, $serviceId, $endpoint, $verb);
-                        break;
-                    }
-
                     $key = sprintf($typeStr, $serviceId, $endpoint);
                 break;
                 case 'instance.user.service.endpoint':
 
                     $typeStr = static::$limitTypes[$limitType];
-                    /** if a valid verb is passed, concat it on. */
-                    if(!is_null($verb)){
-                        $typeStr .= '.verb:%s';
-                        $key = sprintf($typeStr, $userId, $serviceId, $endpoint, $verb);
-                        break;
-                    }
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
                     break;
             }
 
-            /* Finally add the period to the string */
-
+            /** Finally add the verb and the period to the string */
+            if(!is_null($verb)){
+                /** if a valid verb is passed, concat it on. */
+                $key .= sprintf('.verb:%s', $verb);
+            }
             return $key . '.' . static::$limitPeriods[$limitPeriod];
         }
     }

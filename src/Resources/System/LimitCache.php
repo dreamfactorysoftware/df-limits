@@ -375,8 +375,8 @@ class LimitCache extends BaseSystemResource
                             $user->id,
                             $limit->role_id,
                             $limit->service_id,
-                            $limitData->endpoint,
-                            $limitData->verb,
+                            $limit->endpoint,
+                            $limit->verb,
                             $limit->period
                         );
                         $this->clearKey($usrKey);
@@ -389,8 +389,8 @@ class LimitCache extends BaseSystemResource
                         $limit->user_id,
                         $limit->role_id,
                         $limit->service_id,
-                        $limitData->endpoint,
-                        $limitData->verb,
+                        $limit->endpoint,
+                        $limit->verb,
                         $limit->period
                     );
 
