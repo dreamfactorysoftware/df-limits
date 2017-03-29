@@ -68,7 +68,7 @@ class EvaluateLimits
         $overLimit = [];
 
         /* check for user overrides */
-        $overrides = ['user' => [], 'service' => []];
+        $overrides = ['user' => [], 'service' => [], 'endpoint' => []];
         foreach ($limits as $limit) {
             if (!is_null($limit->user_id)) {
                 switch ($limit->type) {
