@@ -78,6 +78,9 @@ class EvaluateLimits
                     case 'instance.user.service':
                         $overrides['service'][] = $limit->user_id;
                         break;
+                    case 'instance.user.service.endpoint':
+                        $overrides['endpoint'][] = $limit->user_id;
+                        break;
                 }
             }
         }
@@ -120,7 +123,8 @@ class EvaluateLimits
                          */
 
                         if($limit->type == 'instance.each_user' && in_array($userId, $overrides['user']) ||
-                            $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service'])){
+                            $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service']) ||
+                            $limit->type == 'instance.each_user.service.endpoint' && in_array($userId, $overrides['endpoint']) ){
                             continue;
                         }
                         $overLimit[] = [

@@ -451,8 +451,7 @@ class Limit extends BaseSystemResource
 
     protected function validateEndpoint(&$endpoint, $serviceId)
     {
-        //TODO:Add validate endpoint code
-
+        $endpoint = preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
         return true;
     }
 
