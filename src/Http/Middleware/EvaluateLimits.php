@@ -91,6 +91,8 @@ class EvaluateLimits
             /** Process all verbs unless it is specified in the db for that limit. */
             $dbVerb = (!is_null($limit->verb)) ? $limit->verb : null;
             $derivedVerb = (!is_null($limit->verb)) ? $method : null;
+            /** Default state of derrived should be the route resource (only applies to endpoint with an override). */
+            $derivedResource = $routeResource;
 
             $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 
@@ -105,10 +107,22 @@ class EvaluateLimits
                 $dbUser = $userId;
             }
 
+            /**
+             * This is what actually makes the base endpoint stored in database
+             * match against the route resource, so that none of the rest of the
+             * route resource is counted, ie, _schema/table/field, etc only _schema/table.
+             * Looks for a match and then overrides the resource as $derivedResource
+             */
+            if(!is_null($limit->endpoint)){
+                if(0 === substr_compare($routeResource, $limit->endppoint, 0, strlen($limit->endpoint))){
+                    $derivedResource = $limit->endpoint;
+                }
+            }
+
             /* $checkKey key built from the database - these are the conditions we're checking for */
             $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $routeResource, $derivedVerb, $limit->period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $limit->period);
 
             if ($checkKey == $derivedKey) {
 
