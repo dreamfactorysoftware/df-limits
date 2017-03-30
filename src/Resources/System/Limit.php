@@ -10,6 +10,7 @@ use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Resources\System\Event;
 
 class Limit extends BaseSystemResource
 {
@@ -84,8 +85,11 @@ class Limit extends BaseSystemResource
      */
     protected function handlePOST()
     {
-        /* First, enrich our payload with some conversions and a unique key */
+        /** First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+
+
+
         $isRollback = $this->request->getParameter('rollback');
         if (!isset($records[0])) {
             $tmpRecords[] = $records;
@@ -404,9 +408,9 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
 
-                if(!$this->validateEndpoint($record['endpoint'], $record['service_id'])){
-                    throw new BadRequestException('endpoint is not valid for the service.');
-
+                $outcome = $this->validateEndpoint($record['endpoint'], $record['service_id']);
+                if(!empty($outcome)){
+                    throw new BadRequestException(implode(' ', $outcome));
                 }
 
                 $this->nullify($record, ['user_id', 'role_id']);
@@ -436,9 +440,10 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
 
-                if(!$this->validateEndpoint($record['endpoint'], $record['service_id'])){
-                    throw new BadRequestException('endpoint is not valid for the service.');
+                $outcome = $this->validateEndpoint($record['endpoint'], $record['service_id']);
 
+                if(!empty($outcome)){
+                    throw new BadRequestException(implode(' ', $outcome));
                 }
 
                 $this->nullify($record, ['role_id']);
@@ -449,10 +454,37 @@ class Limit extends BaseSystemResource
         return true;
     }
 
+    /**
+     * Validates an enpoint against known events as well as sanitizes incoming endpoint.
+     * @param $endpoint
+     * @param $serviceId
+     *
+     * @return bool
+     */
     protected function validateEndpoint(&$endpoint, $serviceId)
     {
-        $endpoint = preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
-        return true;
+
+        $outcome = [];
+        $endpoint = $this->sanitizeEndpoint($endpoint);
+
+        /** Need to pull system events to match any API Endpoint limits up with. $eventMap */
+        $eventMap = Event::getEventMap();
+        $service  = Service::where('id', $serviceId)->get();
+        if(!$service->isEmpty()){
+            $serviceName = $service[0]->name;
+        }
+
+        $eptParts = explode('/', $endpoint);
+        if(count($eptParts) > 2){
+            $outcome[] = 'Endpoint cannot have extra depth. ie, _schema/contact NOT _schema/contact/name';
+        }
+
+        if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
+            $outcome[] = 'Endpoint does not exist for the service ' . $serviceName;
+        }
+
+
+        return $outcome;
     }
 
     protected function checkUser($id)
@@ -470,6 +502,7 @@ class Limit extends BaseSystemResource
         return Service::where('id', $id)->exists();
     }
 
+
     protected function nullify(&$record, $nullable = [])
     {
         if (!empty($nullable)) {
@@ -477,6 +510,17 @@ class Limit extends BaseSystemResource
                 $record[$type] = null;
             }
         }
+    }
+
+    /**
+     * Sanitizes an endpoint from leading and trailing slashes
+     * @param $endpoint
+     *
+     * @return string Sanitized Endpoint.
+     */
+    protected function sanitizeEndpoint($endpoint)
+    {
+        return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
     }
 
 }
