@@ -467,6 +467,11 @@ class Limit extends BaseSystemResource
         $outcome = [];
         $endpoint = $this->sanitizeEndpoint($endpoint);
 
+        /** Check for blank endpoints */
+        if(empty($endpoint)){
+            return $outcome;
+        }
+
         /** Need to pull system events to match any API Endpoint limits up with. $eventMap */
         $eventMap = Event::getEventMap();
         $service  = Service::where('id', $serviceId)->get();

@@ -68,8 +68,9 @@ class EvaluateLimits
         $overLimit = [];
 
         /* check for user overrides */
-        $overrides = ['user' => [], 'service' => [], 'endpoint' => []];
+        $overrides = ['user' => [], 'service' => [], 'endpoint' => [], 'verb'  => []];
         foreach ($limits as $limit) {
+            /** User overrides each_user at these levels */
             if (!is_null($limit->user_id)) {
                 switch ($limit->type) {
                     case 'instance.user':
@@ -83,6 +84,11 @@ class EvaluateLimits
                         break;
                 }
             }
+
+            /** Verb overrides array, to be compared by type */
+            if(!is_null($limit->verb)){
+                $overrides['verb'][] = $limit;
+            }
         }
 
         foreach ($limits as $limit) {
@@ -91,6 +97,7 @@ class EvaluateLimits
             /** Process all verbs unless it is specified in the db for that limit. */
             $dbVerb = (!is_null($limit->verb)) ? $limit->verb : null;
             $derivedVerb = (!is_null($limit->verb)) ? $method : null;
+            $overrideVerb = false;
             /** Default state of derrived should be the route resource (only applies to endpoint with an override). */
             $derivedResource = $routeResource;
 
@@ -113,8 +120,12 @@ class EvaluateLimits
              * route resource is counted, ie, _schema/table/field, etc only _schema/table.
              * Looks for a match and then overrides the resource as $derivedResource
              */
-            if(!is_null($limit->endpoint)){
-                if(0 === substr_compare($routeResource, $limit->endppoint, 0, strlen($limit->endpoint))){
+            if(!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)){
+                $size = (strlen($limit->endpoint) > 0) ?  strlen($limit->endpoint) : 0;
+                Log::debug('string length: ' . $size);
+                Log::debug('string contents: ' . $limit->endpoint);
+                Log::debug('route resource: ' . $routeResource);
+                if(0 === substr_compare($routeResource, $limit->endppoint, 0, $size)){
                     $derivedResource = $limit->endpoint;
                 }
             }
@@ -123,6 +134,18 @@ class EvaluateLimits
             $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
             $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $limit->period);
+
+            if(!empty($overrides['verb'])){
+                foreach($overrides['verb'] as $compareVerb){
+                    /** First build a key without the verb to see if we get a match */
+                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $compareVerb->period);
+                    /** If the incoming key matches the verb key without the verb, and the verbs of the incoming request match the verb on the key,
+                     * we have an override situation. */
+                    if($verbKey == $checkKey && $verbKey == $derivedKey && $compareVerb->verb == $method && $compareVerb->id !== $limit->id){
+                        $overrideVerb = true;
+                    }
+                }
+            }
 
             if ($checkKey == $derivedKey) {
 
@@ -141,6 +164,11 @@ class EvaluateLimits
                             $limit->type == 'instance.each_user.service.endpoint' && in_array($userId, $overrides['endpoint']) ){
                             continue;
                         }
+
+                        if($overrideVerb === true ){
+                            continue;
+                        }
+
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
