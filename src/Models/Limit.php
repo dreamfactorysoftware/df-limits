@@ -151,11 +151,12 @@ class Limit extends BaseSystemModel
     /**
      * {@inheritdoc}
      */
-    public function validate($data = [], $throwException = true)
+    public function getRules()
     {
-        $this->rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods) - 1)));
-        $this->rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
+        $rules = parent::getRules();
+        $rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods) - 1)));
+        $rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
 
-        return parent::validate($data, $throwException);
+        return $rules;
     }
 }
