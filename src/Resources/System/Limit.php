@@ -485,7 +485,7 @@ class Limit extends BaseSystemResource
         }
 
         if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
-            $outcome[] = 'Endpoint does not exist for the service ' . $serviceName;
+            $outcome[] = 'Endpoint does not exist for the service ' . $serviceName . ' Endpoint: ' .$endpoint;
         }
 
 

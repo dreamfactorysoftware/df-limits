@@ -125,7 +125,8 @@ class EvaluateLimits
                 Log::debug('string length: ' . $size);
                 Log::debug('string contents: ' . $limit->endpoint);
                 Log::debug('route resource: ' . $routeResource);
-                if(0 === substr_compare($routeResource, $limit->endppoint, 0, $size)){
+                $ep = $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
+                if(0 === substr_compare($ep, $routeResource, 0, $size)){
                     $derivedResource = $limit->endpoint;
                 }
             }
