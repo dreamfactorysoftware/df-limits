@@ -35,7 +35,7 @@ class EvaluateLimits
      */
     public function __construct()
     {
-        $this->limiter = new LimitCache(app('cache')->store('limit'));
+        $this->limiter = new LimitCache();
     }
 
     /**

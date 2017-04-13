@@ -11,6 +11,11 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use Illuminate\Cache\RateLimiter;
+use Illuminate\Cache\FileStore;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Cache\RedisStore;
+use Illuminate\Redis\RedisManager;
+
 
 class LimitCache extends BaseSystemResource
 {
@@ -62,8 +67,34 @@ class LimitCache extends BaseSystemResource
      */
     public function __construct()
     {
-        $this->cache = app('cache')->store('limit');
+        $cacheConfig = config('cache.stores.limit');
+
+        switch ($cacheConfig['driver']){
+            case 'file':
+                $fileSystem = new Filesystem();
+                $store = new FileStore($fileSystem, $cacheConfig['file']['path']);
+
+                break;
+
+            case 'redis':
+                $server = [
+                    'cluster' => false,
+                    'default' => [
+                        'host'     => $cacheConfig['redis']['host'],
+                        'port'     => $cacheConfig['redis']['port'],
+                        'database' => $cacheConfig['redis']['database'],
+                        'password' => $cacheConfig['redis']['password']
+                    ]
+                ];
+                $redisDatabase = new RedisManager('predis', $server);
+                $store = new RedisStore($redisDatabase);
+
+                break;
+        }
+
+        $this->cache = \Cache::repository($store);
         $this->limiter = new RateLimiter($this->cache);
+
         $this->limitsModel = new static::$model;
     }
 
