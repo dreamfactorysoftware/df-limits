@@ -318,7 +318,7 @@ class LimitCache extends BaseSystemResource
     protected function checkKeys($keys)
     {
         foreach ($keys as &$key) {
-            $key['attempts'] = $this->getAttempts($key['key'], $key['max']);
+            $key['attempts'] = (int)$this->getAttempts($key['key'], $key['max']);
             $key['remaining'] = $this->retriesLeft($key['key'], $key['max']);
         }
 
