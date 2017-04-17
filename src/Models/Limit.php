@@ -114,13 +114,13 @@ class Limit extends BaseSystemModel
 
                     $typeStr = static::$limitTypes[$limitType];
                     $key = sprintf($typeStr, $serviceId, $endpoint);
-                break;
+                    break;
 
                 case 'instance.user.service.endpoint':
 
                     $typeStr = static::$limitTypes[$limitType];
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
-                break;
+                    break;
 
                 case 'instance.each_user.service.endpoint':
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
@@ -128,10 +128,11 @@ class Limit extends BaseSystemModel
             }
 
             /** Finally add the verb and the period to the string */
-            if(!is_null($verb)){
+            if (!is_null($verb)) {
                 /** if a valid verb is passed, concat it on. */
                 $key .= sprintf('.verb:%s', $verb);
             }
+
             return $key . '.' . static::$limitPeriods[$limitPeriod];
         }
     }
@@ -158,5 +159,20 @@ class Limit extends BaseSystemModel
         $rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
 
         return $rules;
+    }
+
+    public function user_by_user_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\User', 'user_id');
+    }
+
+    public function service_by_service_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\Service', 'service_id');
+    }
+
+    public function role_by_role_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\Role', 'role_id');
     }
 }
