@@ -324,6 +324,11 @@ class Limit extends BaseSystemResource
 
     protected function validateLimitPayload(&$record)
     {
+        /** This applies to all limits */
+        /* limits are active by default, but in case of deactivation, set the limit inactive */
+        if (isset($record['rate']) && !filter_var($record['rate'], FILTER_VALIDATE_INT)) {
+            throw new BadRequestException('Limit rate must be an integer. Limit not saved.');
+        }
 
         switch ($record['type']) {
             case 'instance':
