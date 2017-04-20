@@ -99,7 +99,7 @@ class EvaluateLimits
             $derivedVerb = (!is_null($limit->verb)) ? $method : null;
             $overrideVerb = false;
             /** Default state of derrived should be the route resource (only applies to endpoint with an override). */
-            $derivedResource = $routeResource;
+            $derivedResource = ltrim(rtrim($routeResource, '/'), '/');
 
             $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 

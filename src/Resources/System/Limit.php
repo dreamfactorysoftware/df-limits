@@ -478,22 +478,23 @@ class Limit extends BaseSystemResource
         }
 
         /** Need to pull system events to match any API Endpoint limits up with. $eventMap */
-        $eventMap = Event::getEventMap();
+        /** Right now, no need to evaluate against the list of services, may need in the future. */
+
+        /*$eventMap = Event::getEventMap();
         $service  = Service::where('id', $serviceId)->get();
         if(!$service->isEmpty()){
             $serviceName = $service[0]->name;
         }
 
-        $eptParts = explode('/', $endpoint);
+        $eptParts = explode('/', $endpoint);*/
 
         /** Removed to allow any depth of endpoint to be posted.  */
         /*if(count($eptParts) > 2){
             $outcome[] = 'Endpoint cannot have extra depth. ie, _schema/contact NOT _schema/contact/name';
         }*/
-
-        if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
+        /* if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
             $outcome[] = 'Endpoint does not exist for the service ' . $serviceName . ' Endpoint: ' .$endpoint;
-        }
+        }*/
 
 
         return $outcome;
