@@ -126,7 +126,7 @@ class EvaluateLimits
                 $size = (strlen($ep) > 0) ?  strlen($ep) : 0;
 
                 /** Check for a * in the endpoint for wildcard Eps */
-                if($pos = strrpos($ep, '*')){
+                if(($pos = strrpos($ep, '*')) !== false){
                     /** Do we have a match up to the star? */
                     if(0 === substr_compare($ep, $routeResource, 0, $pos)){
                         $derivedResource = $ep;
