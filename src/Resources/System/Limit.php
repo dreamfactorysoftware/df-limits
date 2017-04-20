@@ -485,9 +485,11 @@ class Limit extends BaseSystemResource
         }
 
         $eptParts = explode('/', $endpoint);
-        if(count($eptParts) > 2){
+
+        /** Removed to allow any depth of endpoint to be posted.  */
+        /*if(count($eptParts) > 2){
             $outcome[] = 'Endpoint cannot have extra depth. ie, _schema/contact NOT _schema/contact/name';
-        }
+        }*/
 
         if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
             $outcome[] = 'Endpoint does not exist for the service ' . $serviceName . ' Endpoint: ' .$endpoint;

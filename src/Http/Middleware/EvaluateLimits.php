@@ -121,14 +121,23 @@ class EvaluateLimits
              * Looks for a match and then overrides the resource as $derivedResource
              */
             if(!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)){
-                $size = (strlen($limit->endpoint) > 0) ?  strlen($limit->endpoint) : 0;
-                Log::debug('string length: ' . $size);
-                Log::debug('string contents: ' . $limit->endpoint);
                 Log::debug('route resource: ' . $routeResource);
                 $ep = $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
-                if(0 === substr_compare($ep, $routeResource, 0, $size)){
-                    $derivedResource = $limit->endpoint;
+                $size = (strlen($ep) > 0) ?  strlen($ep) : 0;
+
+                /** Check for a * in the endpoint for wildcard Eps */
+                if($pos = strrpos($ep, '*')){
+                    /** Do we have a match up to the star? */
+                    if(0 === substr_compare($ep, $routeResource, 0, $pos)){
+                        $derivedResource = $ep;
+                    }
+                } else {
+                    /** Evaluate the incoming literally */
+                    if(0 === strcmp($ep, $routeResource)){
+                        $derivedResource = $ep;
+                    }
                 }
+
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
