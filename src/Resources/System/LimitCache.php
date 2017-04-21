@@ -11,6 +11,11 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use Illuminate\Cache\RateLimiter;
+use Illuminate\Cache\FileStore;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Cache\RedisStore;
+use Illuminate\Redis\RedisManager;
+
 
 class LimitCache extends BaseSystemResource
 {
@@ -62,8 +67,34 @@ class LimitCache extends BaseSystemResource
      */
     public function __construct()
     {
-        $this->cache = app('cache')->store('limit');
+        $cacheConfig = config('cache.stores.limit');
+
+        switch ($cacheConfig['driver']){
+            case 'file':
+                $fileSystem = new Filesystem();
+                $store = new FileStore($fileSystem, $cacheConfig['file']['path']);
+
+                break;
+
+            case 'redis':
+                $server = [
+                    'cluster' => false,
+                    'default' => [
+                        'host'     => $cacheConfig['redis']['host'],
+                        'port'     => $cacheConfig['redis']['port'],
+                        'database' => $cacheConfig['redis']['database'],
+                        'password' => $cacheConfig['redis']['password']
+                    ]
+                ];
+                $redisDatabase = new RedisManager('predis', $server);
+                $store = new RedisStore($redisDatabase);
+
+                break;
+        }
+
+        $this->cache = \Cache::repository($store);
         $this->limiter = new RateLimiter($this->cache);
+
         $this->limitsModel = new static::$model;
     }
 
@@ -236,6 +267,8 @@ class LimitCache extends BaseSystemResource
                             $user->id,
                             $limitData->role_id,
                             $limitData->service_id,
+                            $limitData->endpoint,
+                            $limitData->verb,
                             $limitData->period
                         );
 
@@ -252,6 +285,8 @@ class LimitCache extends BaseSystemResource
                         $limitData->user_id,
                         $limitData->role_id,
                         $limitData->service_id,
+                        $limitData->endpoint,
+                        $limitData->verb,
                         $limitData->period
                     );
 
@@ -283,7 +318,7 @@ class LimitCache extends BaseSystemResource
     protected function checkKeys($keys)
     {
         foreach ($keys as &$key) {
-            $key['attempts'] = $this->getAttempts($key['key'], $key['max']);
+            $key['attempts'] = (int)$this->getAttempts($key['key'], $key['max']);
             $key['remaining'] = $this->retriesLeft($key['key'], $key['max']);
         }
 
@@ -323,6 +358,17 @@ class LimitCache extends BaseSystemResource
         }
 
         return $attempts === 0 ? $maxAttempts : $maxAttempts - $attempts;
+    }
+
+    /**
+     * Get the number of seconds until the "key" is accessible again.
+     *
+     * @param  string  $key
+     * @return int
+     */
+    public function availableIn($key)
+    {
+        return $this->limiter->availableIn($key);
     }
 
     /**
@@ -371,6 +417,8 @@ class LimitCache extends BaseSystemResource
                             $user->id,
                             $limit->role_id,
                             $limit->service_id,
+                            $limit->endpoint,
+                            $limit->verb,
                             $limit->period
                         );
                         $this->clearKey($usrKey);
@@ -383,6 +431,8 @@ class LimitCache extends BaseSystemResource
                         $limit->user_id,
                         $limit->role_id,
                         $limit->service_id,
+                        $limit->endpoint,
+                        $limit->verb,
                         $limit->period
                     );
 

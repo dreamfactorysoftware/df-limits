@@ -10,16 +10,23 @@ class Limit extends BaseSystemModel
     protected $table = 'limits';
 
     public static $limitTypes = [
-        'instance'                   => 'instance',
-        'instance.user'              => 'instance.user:%s',
-        'instance.each_user'         => 'instance.each_user:%s',
-        'instance.user.service'      => 'instance.user:%s.service:%s',
-        'instance.each_user.service' => 'instance.each_user:%s.service:%s',
-        'instance.service'           => 'instance.service:%s',
-        'instance.role'              => 'instance.role:%s',
+        'instance'                            => 'instance',
+        'instance.user'                       => 'instance.user:%s',
+        'instance.each_user'                  => 'instance.each_user:%s',
+        'instance.user.service'               => 'instance.user:%s.service:%s',
+        'instance.each_user.service'          => 'instance.each_user:%s.service:%s',
+        'instance.service'                    => 'instance.service:%s',
+        'instance.service.endpoint'           => 'instance.service:%s.endpoint:%s',
+        'instance.user.service.endpoint'      => 'instance.user:%s.service:%s.endpoint:%s',
+        'instance.each_user.service.endpoint' => 'instance.each_user:%s.service:%s.endpoint:%s',
+        'instance.role'                       => 'instance.role:%s',
     ];
 
-    public static $eachUserTypes = ['instance.each_user', 'instance.each_user.service'];
+    public static $eachUserTypes = [
+        'instance.each_user',
+        'instance.each_user.service',
+        'instance.each_user.service.endpoint'
+    ];
 
     public static $limitPeriods = [
         'minute',
@@ -54,6 +61,8 @@ class Limit extends BaseSystemModel
         'user_id',
         'role_id',
         'service_id',
+        'endpoint',
+        'verb',
         'name',
         'description',
         'period',
@@ -68,11 +77,13 @@ class Limit extends BaseSystemModel
      * @param $userId
      * @param $roleId
      * @param $serviceId
+     * @param $endpoint
+     * @param $verb
      * @param $limitPeriod
      *
      * @return string
      */
-    public function resolveCheckKey($limitType, $userId, $roleId, $serviceId, $limitPeriod)
+    public function resolveCheckKey($limitType, $userId, $roleId, $serviceId, $endpoint, $verb, $limitPeriod)
     {
         if (isset(self::$limitTypes[$limitType])) {
 
@@ -94,12 +105,33 @@ class Limit extends BaseSystemModel
                 case 'instance.each_user.service':
                     $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId);
                     break;
+
                 case 'instance.service':
                     $key = sprintf(static::$limitTypes[$limitType], $serviceId);
                     break;
+
+                case 'instance.service.endpoint':
+
+                    $typeStr = static::$limitTypes[$limitType];
+                    $key = sprintf($typeStr, $serviceId, $endpoint);
+                    break;
+
+                case 'instance.user.service.endpoint':
+
+                    $typeStr = static::$limitTypes[$limitType];
+                    $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
+                    break;
+
+                case 'instance.each_user.service.endpoint':
+                    $key = sprintf(static::$limitTypes[$limitType], $userId, $serviceId, $endpoint);
+                    break;
             }
 
-            /* Finally add the period to the string */
+            /** Finally add the verb and the period to the string */
+            if (!is_null($verb)) {
+                /** if a valid verb is passed, concat it on. */
+                $key .= sprintf('.verb:%s', $verb);
+            }
 
             return $key . '.' . static::$limitPeriods[$limitPeriod];
         }
@@ -109,6 +141,7 @@ class Limit extends BaseSystemModel
      * Get the active indicator and return bool
      *
      * @param  string $value
+     *
      * @return Bool
      */
     public function getIsActiveAttribute($value)
@@ -119,11 +152,27 @@ class Limit extends BaseSystemModel
     /**
      * {@inheritdoc}
      */
-    public function validate(array $data = [], $throwException = true)
+    public function getRules()
     {
-        $this->rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods) - 1)));
-        $this->rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
+        $rules = parent::getRules();
+        $rules['period'] .= '|in:' . implode(',', range(0, (count(static::$limitPeriods) - 1)));
+        $rules['type'] .= '|in:' . implode(',', array_keys(static::$limitTypes));
 
-        return parent::validate($data, $throwException);
+        return $rules;
+    }
+
+    public function user_by_user_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\User', 'user_id');
+    }
+
+    public function service_by_service_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\Service', 'service_id');
+    }
+
+    public function role_by_role_id()
+    {
+        return $this->belongsTo('DreamFactory\Core\Models\Role', 'role_id');
     }
 }

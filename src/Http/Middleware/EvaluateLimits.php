@@ -13,6 +13,8 @@ use DreamFactory\Core\Models\Service;
 use Carbon\Carbon;
 use Route;
 use Closure;
+use Log;
+
 
 class EvaluateLimits
 {
@@ -33,7 +35,7 @@ class EvaluateLimits
      */
     public function __construct()
     {
-        $this->limiter = new LimitCache(app('cache')->store('limit'));
+        $this->limiter = new LimitCache();
     }
 
     /**
@@ -54,7 +56,11 @@ class EvaluateLimits
         if ($isAdmin) {
             return $next($request);
         }
+
         $routeService = Route::getCurrentRoute()->parameter('service');
+        $routeResource = Route::getcurrentRoute()->parameter('resource');
+        $method = $request->method();
+
         $service = Service::where('name', $routeService)->first();
 
         /* Important - only evaluate against active limits */
@@ -62,8 +68,9 @@ class EvaluateLimits
         $overLimit = [];
 
         /* check for user overrides */
-        $overrides = ['user' => [], 'service' => []];
+        $overrides = ['user' => [], 'service' => [], 'endpoint' => [], 'verb'  => []];
         foreach ($limits as $limit) {
+            /** User overrides each_user at these levels */
             if (!is_null($limit->user_id)) {
                 switch ($limit->type) {
                     case 'instance.user':
@@ -72,12 +79,28 @@ class EvaluateLimits
                     case 'instance.user.service':
                         $overrides['service'][] = $limit->user_id;
                         break;
+                    case 'instance.user.service.endpoint':
+                        $overrides['endpoint'][] = $limit->user_id;
+                        break;
                 }
+            }
+
+            /** Verb overrides array, to be compared by type */
+            if(!is_null($limit->verb)){
+                $overrides['verb'][] = $limit;
             }
         }
 
         foreach ($limits as $limit) {
             $dbUser = $limit->user_id;
+
+            /** Process all verbs unless it is specified in the db for that limit. */
+            $dbVerb = (!is_null($limit->verb)) ? $limit->verb : null;
+            $derivedVerb = (!is_null($limit->verb)) ? $method : null;
+            $overrideVerb = false;
+            /** Default state of derrived should be the route resource (only applies to endpoint with an override). */
+            $derivedResource = ltrim(rtrim($routeResource, '/'), '/');
+
             $isUserLimit = (in_array($limit->type, $limitModel::$eachUserTypes));
 
             /* This checks for an "Each User" condition, where the limit would apply to every user
@@ -91,10 +114,48 @@ class EvaluateLimits
                 $dbUser = $userId;
             }
 
+            /**
+             * This is what actually makes the base endpoint stored in database
+             * match against the route resource, so that none of the rest of the
+             * route resource is counted, ie, _schema/table/field, etc only _schema/table.
+             * Looks for a match and then overrides the resource as $derivedResource
+             */
+            if(!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)){
+                Log::debug('route resource: ' . $routeResource);
+                $ep = $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
+                $size = (strlen($ep) > 0) ?  strlen($ep) : 0;
+
+                /** Check for a * in the endpoint for wildcard Eps */
+                if(($pos = strrpos($ep, '*')) !== false){
+                    /** Do we have a match up to the star? */
+                    if(0 === substr_compare($ep, $routeResource, 0, $pos)){
+                        $derivedResource = $ep;
+                    }
+                } else {
+                    /** Evaluate the incoming literally */
+                    if(0 === strcmp($ep, $routeResource)){
+                        $derivedResource = $ep;
+                    }
+                }
+
+            }
+
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->period);
+            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $limit->period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $limit->period);
+
+            if(!empty($overrides['verb'])){
+                foreach($overrides['verb'] as $compareVerb){
+                    /** First build a key without the verb to see if we get a match */
+                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $compareVerb->period);
+                    /** If the incoming key matches the verb key without the verb, and the verbs of the incoming request match the verb on the key,
+                     * we have an override situation. */
+                    if($verbKey == $checkKey && $verbKey == $derivedKey && $compareVerb->verb == $method && $compareVerb->id !== $limit->id){
+                        $overrideVerb = true;
+                    }
+                }
+            }
 
             if ($checkKey == $derivedKey) {
 
@@ -109,9 +170,15 @@ class EvaluateLimits
                          */
 
                         if($limit->type == 'instance.each_user' && in_array($userId, $overrides['user']) ||
-                            $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service'])){
+                            $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service']) ||
+                            $limit->type == 'instance.each_user.service.endpoint' && in_array($userId, $overrides['endpoint']) ){
                             continue;
                         }
+
+                        if($overrideVerb === true ){
+                            continue;
+                        }
+
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
@@ -130,7 +197,7 @@ class EvaluateLimits
             return $this->addHeaders(
                 $response, $limit->rate,
                 $this->calculateRemainingAttempts($checkKey, $limit->rate),
-                true
+                $this->limiter->availableIn($checkKey)
             );
         }
 
