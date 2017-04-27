@@ -3,14 +3,13 @@ namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
+use DreamFactory\Core\Enums\DateTimeIntervals;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Resources\System\Event;
 
 class Limit extends BaseSystemResource
 {

@@ -3,7 +3,7 @@
 namespace DreamFactory\Core\Limit\Models;
 
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
+use DreamFactory\Core\Enums\DateTimeIntervals;
 
 class Limit extends BaseSystemModel
 {
