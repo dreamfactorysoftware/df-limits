@@ -166,7 +166,7 @@ class Limit extends BaseSystemResource
 
                 $this->handleRateChanges($limitRecord, $record);
 
-            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']) {
+            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !array_get_bool($params, 'rollback')) {
                 /* If a record exists in the DB that matches the key, throw it out */
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
                     null, $record);
