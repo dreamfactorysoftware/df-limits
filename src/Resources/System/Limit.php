@@ -3,15 +3,13 @@ namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
+use DreamFactory\Core\Enums\DateTimeIntervals;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Resources\System\Event;
-use function MongoDB\is_string_array;
 
 class Limit extends BaseSystemResource
 {
@@ -202,7 +200,7 @@ class Limit extends BaseSystemResource
 
                 $this->handleRateChanges($limitRecord, $record);
 
-            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']) {
+            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !array_get_bool($params, 'rollback')) {
                 /* If a record exists in the DB that matches the key, throw it out */
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
                     null, $record);
