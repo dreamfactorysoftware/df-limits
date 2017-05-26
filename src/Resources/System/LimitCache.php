@@ -241,7 +241,7 @@ class LimitCache extends BaseSystemResource
      * @return - Limit Cache entry
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
-    protected function getLimitsById($id)
+    public function getLimitsById($id)
     {
         $limits = limitsModel::where('id', $id)->get();
 
