@@ -69,12 +69,12 @@ class LimitCache extends BaseSystemResource
         switch (config('limit.default')){
             case 'file':
                 $fileSystem = new Filesystem();
-                $store = new FileStore($fileSystem, config('limit.file.path'));
+                $store = new FileStore($fileSystem, config('limit.stores.file.path'));
 
                 break;
 
             case 'redis':
-                $cacheConfig = config('limit.redis');
+                $cacheConfig = config('limit.stores.redis');
                 $server = [
                     'cluster' => false,
                     'default' => [
