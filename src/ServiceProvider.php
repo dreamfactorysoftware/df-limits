@@ -20,6 +20,14 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function boot()
     {
+        // add our limit config
+        $configPath = __DIR__ . '/../config/limit.php';
+        if (function_exists('config_path')) {
+            $publishPath = config_path('limit.php');
+        } else {
+            $publishPath = base_path('config/limit.php');
+        }
+        $this->publishes([$configPath => $publishPath], 'config');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->addMiddleware();
         // subscribe to all listened to events
@@ -29,6 +37,8 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
 
     public function register()
     {
+        // merge in limit config, https://laravel.com/docs/5.4/packages#resources
+        $this->mergeConfigFrom( __DIR__ . '/../config/limit.php', 'limit');
 
         // Add our service types.
         $this->app->resolving('df.system.resource', function (SystemResourceManager $df){
@@ -53,7 +63,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
                 ])
             );
         });
-
     }
 
     /**
@@ -73,7 +82,4 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         }
         Route::pushMiddlewareToGroup('df.api', 'df.evaluate_limits');
     }
-
-
-
 }

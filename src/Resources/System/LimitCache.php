@@ -15,6 +15,7 @@ use Illuminate\Cache\FileStore;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Cache\RedisStore;
 use Illuminate\Redis\RedisManager;
+use Cache;
 
 
 class LimitCache extends BaseSystemResource
@@ -67,16 +68,15 @@ class LimitCache extends BaseSystemResource
      */
     public function __construct()
     {
-        $cacheConfig = config('cache.stores.limit');
-
-        switch ($cacheConfig['driver']){
+        switch (config('limit.default')){
             case 'file':
                 $fileSystem = new Filesystem();
-                $store = new FileStore($fileSystem, $cacheConfig['file']['path']);
+                $store = new FileStore($fileSystem, config('file.path'));
 
                 break;
 
             case 'redis':
+                $cacheConfig = config('limit.redis');
                 $server = [
                     'cluster' => false,
                     'default' => [
@@ -92,7 +92,7 @@ class LimitCache extends BaseSystemResource
                 break;
         }
 
-        $this->cache = \Cache::repository($store);
+        $this->cache = Cache::repository($store);
         $this->limiter = new RateLimiter($this->cache);
 
         $this->limitsModel = new static::$model;
