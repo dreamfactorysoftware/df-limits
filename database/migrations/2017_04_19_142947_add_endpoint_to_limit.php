@@ -17,9 +17,6 @@ class AddEndpointToLimit extends Migration
             $t->dropForeign('limits_role_id_foreign');
             $t->dropForeign('limits_service_id_foreign');
             $t->dropForeign('limits_user_id_foreign');
-            $t->dropIndex('limits_role_id_foreign');
-            $t->dropIndex('limits_service_id_foreign');
-            $t->dropIndex('limits_user_id_foreign');
             /** Add new columns */
             $t->text('endpoint')->nullable();
             $t->enum('verb', array('GET', 'POST', 'PUT', 'PATCH', 'DELETE'))->nullable();
