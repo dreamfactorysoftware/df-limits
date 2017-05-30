@@ -17,7 +17,6 @@ use Illuminate\Cache\RedisStore;
 use Illuminate\Redis\RedisManager;
 use Cache;
 
-
 class LimitCache extends BaseSystemResource
 {
     /**
@@ -64,14 +63,13 @@ class LimitCache extends BaseSystemResource
      * Create a new request throttler.
      * LimitCache constructor.
      *
-     * @param bool $throw_errs
      */
     public function __construct()
     {
         switch (config('limit.default')){
             case 'file':
                 $fileSystem = new Filesystem();
-                $store = new FileStore($fileSystem, config('file.path'));
+                $store = new FileStore($fileSystem, config('limit.file.path'));
 
                 break;
 

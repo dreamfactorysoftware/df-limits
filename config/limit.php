@@ -94,6 +94,6 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', 'dreamfactory'),
+    'prefix' => env('LIMIT_CACHE_PREFIX', 'dreamfactory'),
 
 ];
