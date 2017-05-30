@@ -102,11 +102,13 @@ class Limit extends BaseSystemResource
             /** parse the related string */
             $relations = explode(',', $related);
             /** look for our limit_cache entry */
-            if( $keyPos = array_search('limit_cache_by_limit_id', $relations)){
+            $keyPos = array_search('limit_cache_by_limit_id', $relations);
+            if($keyPos !== false){
                 /** Remove the offensive relation */
                 unset($relations[$keyPos]);
                 /** Put it all back for the parent to handle. */
-                $this->request->setParameter('related', implode(',', $relations));
+                $setData = (empty($relations)) ? [] : implode(',', $relations);
+                $this->request->setParameter('related', $setData);
                 return true;
             }
         }
