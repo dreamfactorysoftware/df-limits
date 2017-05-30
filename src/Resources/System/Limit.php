@@ -53,7 +53,9 @@ class Limit extends BaseSystemResource
      */
     protected function handleGET()
     {
+        $getLimitCache = $this->extractCacheRelated();
         $response = parent::handleGET();
+
         if (isset($response['resource']) && !empty($response['resource'])) {
             foreach ($response['resource'] as &$resourceLimit) {
                 if (isset($resourceLimit['period'])) {
@@ -63,6 +65,14 @@ class Limit extends BaseSystemResource
         } else {
             if (isset($response['period']) && !empty($response['period'])) {
                 $response['period'] = $this->resolveLimitPeriod($response['period']);
+            }
+        }
+
+        /** Enrich records with limit_cache if requested. */
+        if($getLimitCache === true){
+            foreach($response['resource'] as &$limitResource){
+                $cacheData = $this->cache->getLimitsById($limitResource['id']);
+                $limitResource['limit_cache_by_limit_id'] = $cacheData[0];
             }
         }
 
@@ -80,14 +90,36 @@ class Limit extends BaseSystemResource
     }
 
     /**
+     * Since limit_cache isn't really a model, we have to look for this in the related param
+     * and pull it out, since there is not a natural join there. We'll handle it separate from the
+     * limit_cache system resource if so..
+     * @return bool
+     */
+    protected function extractCacheRelated(){
+
+        $related = $this->request->getParameter('related');
+        if($related !== null && is_string($related)){
+            /** parse the related string */
+            $relations = explode(',', $related);
+            /** look for our limit_cache entry */
+            if( $keyPos = array_search('limit_cache_by_limit_id', $relations)){
+                /** Remove the offensive relation */
+                unset($relations[$keyPos]);
+                /** Put it all back for the parent to handle. */
+                $this->request->setParameter('related', implode(',', $relations));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function handlePOST()
     {
         /** First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-
-
 
         $isRollback = $this->request->getParameter('rollback');
         if (!isset($records[0])) {
@@ -146,6 +178,8 @@ class Limit extends BaseSystemResource
         $params = $this->request->getParameters();
 
         $payload = $this->getPayloadData();
+
+        $getLimitCache = $this->extractCacheRelated();
 
         if (!empty($this->resource)) {
 
@@ -244,6 +278,12 @@ class Limit extends BaseSystemResource
             if (isset($returnData['period'])) {
                 $returnData['period'] = LimitsModel::$limitPeriods[$returnData['period']];
             }
+        }
+
+        /** Enrich records with limit_cache if requested. */
+        if($getLimitCache === true){
+            $cacheData = $this->cache->getLimitsById($returnData['id']);
+            $returnData['limit_cache_by_limit_id'] = $cacheData[0];
         }
 
         return $returnData;
