@@ -120,6 +120,8 @@ class Limit extends BaseSystemResource
      */
     protected function handlePOST()
     {
+        $getLimitCache = $this->extractCacheRelated();
+
         /** First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
@@ -144,6 +146,12 @@ class Limit extends BaseSystemResource
             foreach ($returnData['resource'] as &$return) {
                 if (isset($return['period'])) {
                     $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+
+                /** Enrich records with limit_cache if requested. */
+                if ($getLimitCache === true) {
+                    $cacheData = $this->cache->getLimitsById($return['id']);
+                    $return['limit_cache_by_limit_id'] = $cacheData;
                 }
             }
         }
