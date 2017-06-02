@@ -454,10 +454,6 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
 
-                if (!isset($record['endpoint']) || is_null($record['endpoint'])) {
-                    throw new BadRequestException('endpoint must be specified with this limit type.');
-                }
-
                 if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
@@ -582,7 +578,10 @@ class Limit extends BaseSystemResource
      */
     protected function sanitizeEndpoint($endpoint)
     {
-        return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
+        if(!is_null($endpoint)){
+            return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
+        }
+        return $endpoint;
     }
 
 }
