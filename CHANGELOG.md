@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+- Added related limit_cache_by_limit_id functionality to GET, POST, and PATCH.
+
 ## [0.2.0] - 2017-04-21
 ### Added
 - Added endpoint support to available limit types
