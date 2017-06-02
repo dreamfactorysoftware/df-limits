@@ -72,7 +72,7 @@ class Limit extends BaseSystemResource
         if($getLimitCache === true){
             foreach($response['resource'] as &$limitResource){
                 $cacheData = $this->cache->getLimitsById($limitResource['id']);
-                $limitResource['limit_cache_by_limit_id'] = $cacheData[0];
+                $limitResource['limit_cache_by_limit_id'] = $cacheData;
             }
         }
 
@@ -102,11 +102,13 @@ class Limit extends BaseSystemResource
             /** parse the related string */
             $relations = explode(',', $related);
             /** look for our limit_cache entry */
-            if( $keyPos = array_search('limit_cache_by_limit_id', $relations)){
+            $keyPos = array_search('limit_cache_by_limit_id', $relations);
+            if($keyPos !== false){
                 /** Remove the offensive relation */
                 unset($relations[$keyPos]);
                 /** Put it all back for the parent to handle. */
-                $this->request->setParameter('related', implode(',', $relations));
+                $setData = (empty($relations)) ? [] : implode(',', $relations);
+                $this->request->setParameter('related', $setData);
                 return true;
             }
         }
@@ -118,6 +120,8 @@ class Limit extends BaseSystemResource
      */
     protected function handlePOST()
     {
+        $getLimitCache = $this->extractCacheRelated();
+
         /** First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
@@ -142,6 +146,12 @@ class Limit extends BaseSystemResource
             foreach ($returnData['resource'] as &$return) {
                 if (isset($return['period'])) {
                     $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+
+                /** Enrich records with limit_cache if requested. */
+                if ($getLimitCache === true) {
+                    $cacheData = $this->cache->getLimitsById($return['id']);
+                    $return['limit_cache_by_limit_id'] = $cacheData;
                 }
             }
         }
@@ -283,7 +293,7 @@ class Limit extends BaseSystemResource
         /** Enrich records with limit_cache if requested. */
         if($getLimitCache === true){
             $cacheData = $this->cache->getLimitsById($returnData['id']);
-            $returnData['limit_cache_by_limit_id'] = $cacheData[0];
+            $returnData['limit_cache_by_limit_id'] = $cacheData;
         }
 
         return $returnData;
