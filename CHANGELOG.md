@@ -4,7 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-- Added related limit_cache_by_limit_id functionality to GET, POST, and PATCH.
+## [0.3.0] - 2017-06-05
+### Added
+- Added related limit_cache_by_limit_id functionality to GET, POST, and PATCH
+### Changed
+- Cleanup - removal of php-utils dependency
+- Remove unnecessary dropIndex() calls after dropForeign(), breaking migrations on sqlsrv
+- Separate limit cache config into its own file
+- Fixing limit_cache relations with single array element
+- Allowed endpoints to be saved as null for evaluation as top level resource
 
 ## [0.2.0] - 2017-04-21
 ### Added
@@ -13,5 +21,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.1.0] - 2017-03-03
 First official release of this library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.1.0...0.2.0
