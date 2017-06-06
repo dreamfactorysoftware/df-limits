@@ -3,14 +3,13 @@ namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
+use DreamFactory\Core\Enums\DateTimeIntervals;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Resources\System\Event;
 
 class Limit extends BaseSystemResource
 {
@@ -54,7 +53,9 @@ class Limit extends BaseSystemResource
      */
     protected function handleGET()
     {
+        $getLimitCache = $this->extractCacheRelated();
         $response = parent::handleGET();
+
         if (isset($response['resource']) && !empty($response['resource'])) {
             foreach ($response['resource'] as &$resourceLimit) {
                 if (isset($resourceLimit['period'])) {
@@ -64,6 +65,14 @@ class Limit extends BaseSystemResource
         } else {
             if (isset($response['period']) && !empty($response['period'])) {
                 $response['period'] = $this->resolveLimitPeriod($response['period']);
+            }
+        }
+
+        /** Enrich records with limit_cache if requested. */
+        if($getLimitCache === true){
+            foreach($response['resource'] as &$limitResource){
+                $cacheData = $this->cache->getLimitsById($limitResource['id']);
+                $limitResource['limit_cache_by_limit_id'] = $cacheData;
             }
         }
 
@@ -81,14 +90,40 @@ class Limit extends BaseSystemResource
     }
 
     /**
+     * Since limit_cache isn't really a model, we have to look for this in the related param
+     * and pull it out, since there is not a natural join there. We'll handle it separate from the
+     * limit_cache system resource if so..
+     * @return bool
+     */
+    protected function extractCacheRelated(){
+
+        $related = $this->request->getParameter('related');
+        if($related !== null && is_string($related)){
+            /** parse the related string */
+            $relations = explode(',', $related);
+            /** look for our limit_cache entry */
+            $keyPos = array_search('limit_cache_by_limit_id', $relations);
+            if($keyPos !== false){
+                /** Remove the offensive relation */
+                unset($relations[$keyPos]);
+                /** Put it all back for the parent to handle. */
+                $setData = (empty($relations)) ? [] : implode(',', $relations);
+                $this->request->setParameter('related', $setData);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function handlePOST()
     {
+        $getLimitCache = $this->extractCacheRelated();
+
         /** First, enrich our payload with some conversions and a unique key */
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-
-
 
         $isRollback = $this->request->getParameter('rollback');
         if (!isset($records[0])) {
@@ -111,6 +146,12 @@ class Limit extends BaseSystemResource
             foreach ($returnData['resource'] as &$return) {
                 if (isset($return['period'])) {
                     $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+
+                /** Enrich records with limit_cache if requested. */
+                if ($getLimitCache === true) {
+                    $cacheData = $this->cache->getLimitsById($return['id']);
+                    $return['limit_cache_by_limit_id'] = $cacheData;
                 }
             }
         }
@@ -148,6 +189,8 @@ class Limit extends BaseSystemResource
 
         $payload = $this->getPayloadData();
 
+        $getLimitCache = $this->extractCacheRelated();
+
         if (!empty($this->resource)) {
 
             $id = (int)$this->resource;
@@ -167,7 +210,7 @@ class Limit extends BaseSystemResource
 
                 $this->handleRateChanges($limitRecord, $record);
 
-            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !$params['rollback']) {
+            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !array_get_bool($params, 'rollback')) {
                 /* If a record exists in the DB that matches the key, throw it out */
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
                     null, $record);
@@ -245,6 +288,12 @@ class Limit extends BaseSystemResource
             if (isset($returnData['period'])) {
                 $returnData['period'] = LimitsModel::$limitPeriods[$returnData['period']];
             }
+        }
+
+        /** Enrich records with limit_cache if requested. */
+        if($getLimitCache === true){
+            $cacheData = $this->cache->getLimitsById($returnData['id']);
+            $returnData['limit_cache_by_limit_id'] = $cacheData;
         }
 
         return $returnData;
@@ -405,10 +454,6 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
 
-                if (!isset($record['endpoint']) || is_null($record['endpoint'])) {
-                    throw new BadRequestException('endpoint must be specified with this limit type.');
-                }
-
                 if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
@@ -533,7 +578,10 @@ class Limit extends BaseSystemResource
      */
     protected function sanitizeEndpoint($endpoint)
     {
-        return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
+        if(!is_null($endpoint)){
+            return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
+        }
+        return $endpoint;
     }
 
 }
