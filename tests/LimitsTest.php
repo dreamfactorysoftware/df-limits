@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Library\Utility\Enums\DateTimeIntervals;
+use DreamFactory\Core\Enums\DateTimeIntervals;
 use DreamFactory\Core\Limit\Models\Limit;
 use DreamFactory\Core\Models\AdminUser;
 

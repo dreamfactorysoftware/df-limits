@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Exceptions\BatchException;
@@ -11,6 +12,11 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use Illuminate\Cache\RateLimiter;
+use Illuminate\Cache\FileStore;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Cache\RedisStore;
+use Illuminate\Redis\RedisManager;
+use Cache;
 
 class LimitCache extends BaseSystemResource
 {
@@ -58,12 +64,36 @@ class LimitCache extends BaseSystemResource
      * Create a new request throttler.
      * LimitCache constructor.
      *
-     * @param bool $throw_errs
      */
     public function __construct()
     {
-        $this->cache = app('cache')->store('limit');
+        switch (config('limit.default')) {
+            case 'file':
+                $fileSystem = new Filesystem();
+                $store = new FileStore($fileSystem, config('limit.stores.file.path'));
+
+                break;
+
+            case 'redis':
+                $cacheConfig = config('limit.stores.redis');
+                $server = [
+                    'cluster' => false,
+                    'default' => [
+                        'host'     => array_get($cacheConfig, 'host'),
+                        'port'     => array_get($cacheConfig, 'port'),
+                        'database' => array_get($cacheConfig, 'database'),
+                        'password' => array_get($cacheConfig, 'password')
+                    ]
+                ];
+                $redisDatabase = new RedisManager(array_get($cacheConfig, 'client'), $server);
+                $store = new RedisStore($redisDatabase);
+
+                break;
+        }
+
+        $this->cache = Cache::repository($store);
         $this->limiter = new RateLimiter($this->cache);
+
         $this->limitsModel = new static::$model;
     }
 
@@ -79,8 +109,7 @@ class LimitCache extends BaseSystemResource
     /**
      * @inheritdoc
      */
-    protected
-    function handleGET()
+    protected function handleGET()
     {
         $id = null;
         $params = $this->request->getParameters();
@@ -90,9 +119,9 @@ class LimitCache extends BaseSystemResource
             $result = $this->getLimitsById($this->resource);
 
             return $result[0];
-        } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $this->getOrClearLimits($ids, $params, false);
-        } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $this->getOrClearLimits($records, $params, false);
         } else {
             /* No id passed, get all limit cache entries */
@@ -113,8 +142,7 @@ class LimitCache extends BaseSystemResource
     /**
      * @inheritdoc
      */
-    protected
-    function handleDELETE()
+    protected function handleDELETE()
     {
         $params = $this->request->getParameters();
         if (isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)) {
@@ -154,20 +182,20 @@ class LimitCache extends BaseSystemResource
      * @return array
      * @throws \DreamFactory\Core\Exceptions\BatchException
      */
-    public function getOrClearLimits($records = array(), $params = array(), $clear = false)
+    public function getOrClearLimits($records = [], $params = [], $clear = false)
     {
         $continue =
             (isset($params['continue']) && filter_var($params['continue'], FILTER_VALIDATE_BOOLEAN)) ? true : false;
 
         if (isset($params['ids']) && !empty($params['ids'])) {
             $idParts = explode(',', $params['ids']);
-            $records = array();
+            $records = [];
             foreach ($idParts as $idPart) {
                 $records[] = ['id' => (int)$idPart];
             }
         }
 
-        $output = array();
+        $output = [];
         $invalid = false;
         foreach ($records as $k => $idRecord) {
             try {
@@ -175,8 +203,8 @@ class LimitCache extends BaseSystemResource
                     $output[] = $this->clearById($idRecord['id']);
                 } else {
                     $tmpArr = $this->getLimitsById($idRecord['id']);
-                    if(count($tmpArr) > 1){
-                        foreach($tmpArr as $item){
+                    if (count($tmpArr) > 1) {
+                        foreach ($tmpArr as $item) {
                             $output[] = $item;
                         }
                     } else {
@@ -210,7 +238,7 @@ class LimitCache extends BaseSystemResource
      * @return - Limit Cache entry
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
-    protected function getLimitsById($id)
+    public function getLimitsById($id)
     {
         $limits = limitsModel::where('id', $id)->get();
 
@@ -236,6 +264,8 @@ class LimitCache extends BaseSystemResource
                             $user->id,
                             $limitData->role_id,
                             $limitData->service_id,
+                            $limitData->endpoint,
+                            $limitData->verb,
                             $limitData->period
                         );
 
@@ -252,6 +282,8 @@ class LimitCache extends BaseSystemResource
                         $limitData->user_id,
                         $limitData->role_id,
                         $limitData->service_id,
+                        $limitData->endpoint,
+                        $limitData->verb,
                         $limitData->period
                     );
 
@@ -283,7 +315,7 @@ class LimitCache extends BaseSystemResource
     protected function checkKeys($keys)
     {
         foreach ($keys as &$key) {
-            $key['attempts'] = $this->getAttempts($key['key'], $key['max']);
+            $key['attempts'] = (int)$this->getAttempts($key['key'], $key['max']);
             $key['remaining'] = $this->retriesLeft($key['key'], $key['max']);
         }
 
@@ -302,7 +334,7 @@ class LimitCache extends BaseSystemResource
     {
         if ($this->cache->has($key)) {
             return $this->cache->get($key, 0);
-        } else if ($this->cache->has($key . ':lockout')) {
+        } elseif ($this->cache->has($key . ':lockout')) {
             return $max;
         } else {
             return 0;
@@ -326,6 +358,17 @@ class LimitCache extends BaseSystemResource
     }
 
     /**
+     * Get the number of seconds until the "key" is accessible again.
+     *
+     * @param  string $key
+     * @return int
+     */
+    public function availableIn($key)
+    {
+        return $this->limiter->availableIn($key);
+    }
+
+    /**
      * Override function for Clearing limits
      *
      * @param array $records
@@ -334,7 +377,7 @@ class LimitCache extends BaseSystemResource
      *
      * @return array
      */
-    public function clearByIds($records = array(), $params = array(), $clear = true)
+    public function clearByIds($records = [], $params = [], $clear = true)
     {
         return $this->getOrClearLimits($records, $params, $clear);
     }
@@ -353,7 +396,7 @@ class LimitCache extends BaseSystemResource
      * @return array
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
-    public function clearById($id, $params = array(), $throw = true)
+    public function clearById($id, $params = [], $throw = true)
     {
         $limitModel = new static::$model;
         $limitData = $limitModel::where('id', $id)->get();
@@ -371,6 +414,8 @@ class LimitCache extends BaseSystemResource
                             $user->id,
                             $limit->role_id,
                             $limit->service_id,
+                            $limit->endpoint,
+                            $limit->verb,
                             $limit->period
                         );
                         $this->clearKey($usrKey);
@@ -383,6 +428,8 @@ class LimitCache extends BaseSystemResource
                         $limit->user_id,
                         $limit->role_id,
                         $limit->service_id,
+                        $limit->endpoint,
+                        $limit->verb,
                         $limit->period
                     );
 
@@ -483,7 +530,7 @@ class LimitCache extends BaseSystemResource
         $path = '/' . $serviceName . '/' . $resourceName;
 
         $apis = [
-            $path => [
+            $path           => [
                 'delete' => [
                     'tags'        => [$serviceName],
                     'summary'     => 'deleteAllLimitCache() - Delete all Limits cache.',
@@ -503,7 +550,7 @@ class LimitCache extends BaseSystemResource
                     'produces'    => ['application/json', 'application/xml'],
                     'description' => 'This clears and resets all limits cache counters in the system.',
                 ],
-                'get' => [
+                'get'    => [
                     'tags'        => [$serviceName],
                     'summary'     => 'getSystemLimitCache() - Retrieve one or more Limit Cache entries.',
                     'operationId' => 'getSystemLimitCache',
@@ -551,7 +598,7 @@ class LimitCache extends BaseSystemResource
                     ],
                     'description' => 'This will reset the limit counter for a specific limit Id.',
                 ],
-                'get' => [
+                'get'    => [
                     'tags'        => [$serviceName],
                     'summary'     => 'getSystemLimitCache() - Retrieve one Limit Cache entry.',
                     'operationId' => 'getSystemLimitCache',
