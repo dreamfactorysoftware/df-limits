@@ -70,6 +70,12 @@ class Limit extends BaseSystemModel
         'is_active',
     ];
 
+    protected $casts = [
+        'rate'      => 'integer',
+        'verb'      => 'string',
+        'is_active' => 'boolean',
+    ];
+
     /**
      * Resolves and builds unique key based on limit type.
      *
@@ -137,17 +143,6 @@ class Limit extends BaseSystemModel
         }
     }
 
-    /**
-     * Get the active indicator and return bool
-     *
-     * @param  string $value
-     *
-     * @return Bool
-     */
-    public function getIsActiveAttribute($value)
-    {
-        return ($value === 1) ? true : false;
-    }
 
     /**
      * {@inheritdoc}
