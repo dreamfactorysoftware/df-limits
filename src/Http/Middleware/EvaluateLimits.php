@@ -11,6 +11,7 @@ use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\Service;
 
 use Carbon\Carbon;
+use Auth;
 use Route;
 use Closure;
 use Log;
@@ -47,11 +48,18 @@ class EvaluateLimits
         $userId = Session::getCurrentUserId();
         $roleId = Session::getRoleId();
         $isAdmin = Session::isSysAdmin();
+        $isBasicAuth = false; // Will be checked later
 
         $token = Session::getSessionToken();
 
+        /** Admins are immune to Limits... */
         if ($isAdmin) {
             return $next($request);
+        }
+
+        /** If we don't have a token and we have gotten this far, check for Basic Auth */
+        if(!$token  && !is_null(Auth::user())){
+            $isBasicAuth = true;
         }
 
         $routeService = Route::getCurrentRoute()->parameter('service');
@@ -60,7 +68,7 @@ class EvaluateLimits
 
         $service = Service::where('name', $routeService)->first();
 
-        /* Important - only evaluate against active limits */
+        /** Important - only evaluate against active limits */
         $limits = Limit::where('is_active', 1)->get();
         $overLimit = [];
 
@@ -156,7 +164,7 @@ class EvaluateLimits
 
             if ($checkKey == $derivedKey) {
 
-                if (!$isUserLimit || ($isUserLimit && !is_null($token))) {
+                if (!$isUserLimit || ($isUserLimit && !is_null($token)) || ($isUserLimit && $isBasicAuth)) {
 
                     if ($this->limiter->tooManyAttempts($checkKey, $limit->rate, Limit::$limitIntervals[$limit->period])
                     ) {
