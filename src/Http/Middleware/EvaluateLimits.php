@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Limit\Events\LimitExceeded;
 
 use Carbon\Carbon;
 use Auth;
@@ -187,6 +188,7 @@ class EvaluateLimits
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
+                            'object' => $limit
                         ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
@@ -196,6 +198,12 @@ class EvaluateLimits
         }
 
         if (!empty($overLimit)) {
+
+            /** We may have exceeded several limits at once, so create separate events. */
+            foreach($overLimit as $event){
+                event(new LimitExceeded($event['object']));
+            }
+
             $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null,
                     $overLimit));
 
