@@ -16,7 +16,10 @@ use Illuminate\Cache\FileStore;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Cache\RedisStore;
 use Illuminate\Redis\RedisManager;
+use DreamFactory\Core\Events\ServiceEvent;
+use Event;
 use Cache;
+
 
 class LimitCache extends BaseSystemResource
 {
@@ -484,18 +487,21 @@ class LimitCache extends BaseSystemResource
      *
      * @return bool
      */
-    public function tooManyAttempts($key, $maxAttempts, $decayMinutes = 1)
+    public function tooManyAttempts($key, $limit, $decayMinutes = 1)
     {
         if ($this->cache->has($key . ':lockout')) {
             return true;
         }
 
-        if ($this->attempts($key) >= $maxAttempts) {
+        if ($this->attempts($key) >= $limit->rate) {
             $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
+            /** Fire a generic event for the service */
+            Event::fire(new ServiceEvent('system.limit.{key_text}.exceeded', $key, $limit->toArray()));
+            /** Fire the specific event */
+            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $key), null, $limit->toArray()));
 
             return $this->cache->forget($key);
 
-            return true;
         }
 
         return false;

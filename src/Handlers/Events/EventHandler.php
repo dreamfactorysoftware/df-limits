@@ -86,6 +86,8 @@ class EventHandler
 
     public function handleLimitExceededEvent($event){
         /** Do limit exceeded stuff */
+        $stop = 1;
+
     }
 
     protected function wipeLimits($limits)
