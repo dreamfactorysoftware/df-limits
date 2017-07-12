@@ -20,7 +20,6 @@ use DreamFactory\Core\Events\ServiceEvent;
 use Event;
 use Cache;
 
-
 class LimitCache extends BaseSystemResource
 {
     /**
@@ -364,6 +363,7 @@ class LimitCache extends BaseSystemResource
      * Get the number of seconds until the "key" is accessible again.
      *
      * @param  string $key
+     *
      * @return int
      */
     public function availableIn($key)
@@ -495,13 +495,17 @@ class LimitCache extends BaseSystemResource
 
         if ($this->attempts($key) >= $limit->rate) {
             $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
+            /** @var Some conversion and enrichment $sendLimit */
+            $sendLimit = $limit->toArray();
+            $sendLimit['period'] = limitsModel::$limitPeriods[$sendLimit['period']];
+            $sendLimit['rate'] = (string)$sendLimit['rate'];
+
             /** Fire a generic event for the service */
-            Event::fire(new ServiceEvent('system.limit.{key_text}.exceeded', $key, $limit->toArray()));
+            Event::fire(new ServiceEvent('system.limit.{key_text}.exceeded', $key, $sendLimit));
             /** Fire the specific event */
-            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $key), null, $limit->toArray()));
+            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $key), null, $sendLimit));
 
             return $this->cache->forget($key);
-
         }
 
         return false;
@@ -633,7 +637,6 @@ class LimitCache extends BaseSystemResource
                 ],
             ],
         ];
-
 
         return ['paths' => $apis, 'definitions' => []];
     }
