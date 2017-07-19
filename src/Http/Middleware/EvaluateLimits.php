@@ -9,7 +9,6 @@ use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Limit\Events\LimitExceeded;
 
 use Carbon\Carbon;
 use Auth;

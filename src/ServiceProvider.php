@@ -7,9 +7,7 @@ use DreamFactory\Core\Resources\System\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Limit\Http\Middleware\EvaluateLimits;
-use DreamFactory\Core\Limit\Handlers\Events\EventHandler;
 use Route;
-use Event;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -30,8 +28,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->publishes([$configPath => $publishPath], 'config');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->addMiddleware();
-        // subscribe to all listened to events
-        Event::subscribe(new EventHandler());
+
     }
 
 
