@@ -588,12 +588,12 @@ class Limit extends BaseSystemResource
     {
         $limits = LimitsModel::where('is_active', 1)->get();
 
-        $keyList = [];
+        $lids = [];
         foreach($limits as $limit){
-            $keyList[] = $limit->key_text;
+            $lids[] = $limit->id;
         }
 
-        return ['system.limit.{key_text}.exceeded' => ['parameter' => ['key_text' => $keyList]]];
+        return ['system.limit.{id}.exceeded' => ['parameter' => ['id' => $lids]]];
     }
 
 }

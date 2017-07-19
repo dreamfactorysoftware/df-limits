@@ -499,11 +499,12 @@ class LimitCache extends BaseSystemResource
             $sendLimit = $limit->toArray();
             $sendLimit['period'] = limitsModel::$limitPeriods[$sendLimit['period']];
             $sendLimit['rate'] = (string)$sendLimit['rate'];
+            $sendLimit['cache_key'] = $key;
 
             /** Fire a generic event for the service */
-            Event::fire(new ServiceEvent('system.limit.{key_text}.exceeded', $key, $sendLimit));
+            Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $sendLimit));
             /** Fire the specific event */
-            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $key), null, $sendLimit));
+            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $limit->id), null, $sendLimit));
 
             return $this->cache->forget($key);
         }
@@ -568,7 +569,7 @@ class LimitCache extends BaseSystemResource
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
+                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCache']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -638,6 +639,22 @@ class LimitCache extends BaseSystemResource
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => []];
+        return ['paths' => $apis, 'definitions' => [
+            'getSystemLimitCache' => [
+                'type' => 'object',
+                'properties' => [
+                    'resource' => [
+                        'type' => 'array',
+                        'description' => 'Array of accessible resources available to this path',
+                        'items' => [
+                            'id' => [
+                                'type' => 'int32',
+                                'description' => 'Id of the Limit.'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]];
     }
 }
