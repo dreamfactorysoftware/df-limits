@@ -8,6 +8,7 @@ use DreamFactory\Core\Events\UserDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
+use DreamFactory\Core\Limit\Events\LimitExceeded;
 use Illuminate\Contracts\Events\Dispatcher;
 use DreamFactory\Core\Limit\Models\Limit;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
@@ -38,6 +39,13 @@ class EventHandler
                 ServiceDeletedEvent::class,
             ],
             static::class . '@handleServiceDeletedEvent'
+        );
+        /** Uses its own handler, local to the limits package. */
+        $events->listen(
+            [
+                LimitExceeded::class
+            ],
+        static::class . '@handleLimitExceededEvent'
         );
 
     }
@@ -74,6 +82,12 @@ class EventHandler
         if(!$limits->isEmpty()){
             $this->wipeLimits($limits);
         }
+    }
+
+    public function handleLimitExceededEvent($event){
+        /** Do limit exceeded stuff */
+        $stop = 1;
+
     }
 
     protected function wipeLimits($limits)

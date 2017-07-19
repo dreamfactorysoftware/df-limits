@@ -16,6 +16,8 @@ use Illuminate\Cache\FileStore;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Cache\RedisStore;
 use Illuminate\Redis\RedisManager;
+use DreamFactory\Core\Events\ServiceEvent;
+use Event;
 use Cache;
 
 class LimitCache extends BaseSystemResource
@@ -361,6 +363,7 @@ class LimitCache extends BaseSystemResource
      * Get the number of seconds until the "key" is accessible again.
      *
      * @param  string $key
+     *
      * @return int
      */
     public function availableIn($key)
@@ -484,18 +487,25 @@ class LimitCache extends BaseSystemResource
      *
      * @return bool
      */
-    public function tooManyAttempts($key, $maxAttempts, $decayMinutes = 1)
+    public function tooManyAttempts($key, $limit, $decayMinutes = 1)
     {
         if ($this->cache->has($key . ':lockout')) {
             return true;
         }
 
-        if ($this->attempts($key) >= $maxAttempts) {
+        if ($this->attempts($key) >= $limit->rate) {
             $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
+            /** @var Some conversion and enrichment $sendLimit */
+            $sendLimit = $limit->toArray();
+            $sendLimit['period'] = limitsModel::$limitPeriods[$sendLimit['period']];
+            $sendLimit['rate'] = (string)$sendLimit['rate'];
+
+            /** Fire a generic event for the service */
+            Event::fire(new ServiceEvent('system.limit.{key_text}.exceeded', $key, $sendLimit));
+            /** Fire the specific event */
+            Event::fire(new ServiceEvent(sprintf('system.limit.{%s}.exceeded', $key), null, $sendLimit));
 
             return $this->cache->forget($key);
-
-            return true;
         }
 
         return false;
@@ -627,7 +637,6 @@ class LimitCache extends BaseSystemResource
                 ],
             ],
         ];
-
 
         return ['paths' => $apis, 'definitions' => []];
     }
