@@ -586,4 +586,16 @@ class Limit extends BaseSystemResource
         return $endpoint;
     }
 
+    public function getEventMap()
+    {
+        $limits = LimitsModel::where('is_active', 1)->get();
+
+        $lids = [];
+        foreach($limits as $limit){
+            $lids[] = $limit->id;
+        }
+
+        return ['system.limit.{id}.exceeded' => ['parameter' => ['id' => $lids]]];
+    }
+
 }

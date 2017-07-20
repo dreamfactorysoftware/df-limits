@@ -166,7 +166,7 @@ class EvaluateLimits
 
                 if (!$isUserLimit || ($isUserLimit && !is_null($token)) || ($isUserLimit && $isBasicAuth)) {
 
-                    if ($this->limiter->tooManyAttempts($checkKey, $limit->rate, Limit::$limitIntervals[$limit->period])
+                    if ($this->limiter->tooManyAttempts($checkKey, $limit, Limit::$limitIntervals[$limit->period])
                     ) {
                         /**
                          * Checks that the current user is not in the override structures for user and service. This would override
@@ -187,6 +187,7 @@ class EvaluateLimits
                         $overLimit[] = [
                             'id'    => $limit->id,
                             'name'  => $limit->name,
+                            'object' => $limit
                         ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
@@ -196,6 +197,7 @@ class EvaluateLimits
         }
 
         if (!empty($overLimit)) {
+
             $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null,
                     $overLimit));
 
