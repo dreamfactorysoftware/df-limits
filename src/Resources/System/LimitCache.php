@@ -64,9 +64,13 @@ class LimitCache extends BaseSystemResource
      * Create a new request throttler.
      * LimitCache constructor.
      *
+     * @param array $settings
+     *
      */
-    public function __construct()
+    public function __construct($settings = [])
     {
+        parent::__construct($settings);
+
         switch (config('limit.default')) {
             case 'file':
                 $fileSystem = new Filesystem();
@@ -235,7 +239,7 @@ class LimitCache extends BaseSystemResource
      *
      * @param $id - LimitId
      *
-     * @return - Limit Cache entry
+     * @return array - Limit Cache entry
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public function getLimitsById($id)
@@ -373,7 +377,7 @@ class LimitCache extends BaseSystemResource
      *
      * @param array $records
      * @param array $params
-     * @param bool  $throw
+     * @param bool  $clear
      *
      * @return array
      */
@@ -494,8 +498,6 @@ class LimitCache extends BaseSystemResource
             $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
 
             return $this->cache->forget($key);
-
-            return true;
         }
 
         return false;
