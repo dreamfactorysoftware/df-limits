@@ -486,7 +486,7 @@ class LimitCache extends BaseSystemResource
      * Determine if the given key has been "accessed" too many times.
      *
      * @param  string $key
-     * @param  int    $maxAttempts
+     * @param  int    $limit
      * @param  int    $decayMinutes
      *
      * @return bool
@@ -499,16 +499,20 @@ class LimitCache extends BaseSystemResource
 
         if ($this->attempts($key) >= $limit->rate) {
             $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
-            /** @var Some conversion and enrichment $sendLimit */
+
+            /** Some conversion and enrichment */
+            $data = [];
             $sendLimit = $limit->toArray();
             $sendLimit['period'] = limitsModel::$limitPeriods[$sendLimit['period']];
             $sendLimit['rate'] = (string)$sendLimit['rate'];
             $sendLimit['cache_key'] = $key;
+            $data['limit'] = $sendLimit;
+            $data['request'] = \Request::toArray();
 
             /** Fire a generic event for the service */
-            Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $sendLimit));
+            Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
             /** Fire the specific event */
-            Event::fire(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $sendLimit));
+            Event::fire(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $data));
 
             return $this->cache->forget($key);
         }
@@ -643,29 +647,32 @@ class LimitCache extends BaseSystemResource
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => [
-            'getSystemLimitCache' => [
-                'type' => 'object',
-                'properties' => [
-                    'resource' => [
-                        'type' => 'array',
-                        'description' => 'Array of accessible resources available to this path',
-                        'items' => [
-                            '$ref' => '#/definitions/SystemLimitCacheResponse'
+        return [
+            'paths'       => $apis,
+            'definitions' => [
+                'getSystemLimitCache'      => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'resource' => [
+                            'type'        => 'array',
+                            'description' => 'Array of accessible resources available to this path',
+                            'items'       => [
+                                '$ref' => '#/definitions/SystemLimitCacheResponse'
+                            ]
+                        ]
+                    ]
+                ],
+                'SystemLimitCacheResponse' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'id' => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Limit identifier.'
                         ]
                     ]
                 ]
-            ],
-            'SystemLimitCacheResponse' => [
-                'type' => 'object',
-                'properties' => [
-                    'id' => [
-                        'type' => 'integer',
-                        'format' => 'int32',
-                        'description' => 'Limit identifier.'
-                    ]
-                ]
             ]
-        ]];
+        ];
     }
 }
