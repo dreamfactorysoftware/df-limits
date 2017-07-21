@@ -647,11 +647,18 @@ class LimitCache extends BaseSystemResource
                         'type' => 'array',
                         'description' => 'Array of accessible resources available to this path',
                         'items' => [
-                            'id' => [
-                                'type' => 'int32',
-                                'description' => 'Id of the Limit.'
-                            ]
+                            '$ref' => '#/definitions/SystemLimitCacheResponse'
                         ]
+                    ]
+                ]
+            ],
+            'SystemLimitCacheResponse' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => [
+                        'type' => 'integer',
+                        'format' => 'int32',
+                        'description' => 'Limit identifier.'
                     ]
                 ]
             ]
