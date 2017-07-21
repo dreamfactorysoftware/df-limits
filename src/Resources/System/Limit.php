@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Resources\System\BaseSystemResource;
@@ -71,8 +72,8 @@ class Limit extends BaseSystemResource
         }
 
         /** Enrich records with limit_cache if requested. */
-        if($getLimitCache === true){
-            foreach($response['resource'] as &$limitResource){
+        if ($getLimitCache === true) {
+            foreach ($response['resource'] as &$limitResource) {
                 $cacheData = $this->cache->getLimitsById($limitResource['id']);
                 $limitResource['limit_cache_by_limit_id'] = $cacheData;
             }
@@ -95,25 +96,29 @@ class Limit extends BaseSystemResource
      * Since limit_cache isn't really a model, we have to look for this in the related param
      * and pull it out, since there is not a natural join there. We'll handle it separate from the
      * limit_cache system resource if so..
+     *
      * @return bool
      */
-    protected function extractCacheRelated(){
+    protected function extractCacheRelated()
+    {
 
         $related = $this->request->getParameter('related');
-        if($related !== null && is_string($related)){
+        if ($related !== null && is_string($related)) {
             /** parse the related string */
             $relations = explode(',', $related);
             /** look for our limit_cache entry */
             $keyPos = array_search('limit_cache_by_limit_id', $relations);
-            if($keyPos !== false){
+            if ($keyPos !== false) {
                 /** Remove the offensive relation */
                 unset($relations[$keyPos]);
                 /** Put it all back for the parent to handle. */
                 $setData = (empty($relations)) ? [] : implode(',', $relations);
                 $this->request->setParameter('related', $setData);
+
                 return true;
             }
         }
+
         return false;
     }
 
@@ -211,8 +216,9 @@ class Limit extends BaseSystemResource
                 unset($record['key_text']);
 
                 $this->handleRateChanges($limitRecord, $record);
-
-            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() && !array_get_bool($params, 'rollback')) {
+            } elseif (LimitsModel::where('key_text', $record['key_text'])->exists() &&
+                !array_get_bool($params, 'rollback')
+            ) {
                 /* If a record exists in the DB that matches the key, throw it out */
                 throw new BadRequestException('A limit already exists with those parameters. No records added.', 0,
                     null, $record);
@@ -271,7 +277,6 @@ class Limit extends BaseSystemResource
                     if ($record['key_text'] == $tmpRecord['key_text']) {
                         unset($record['key_text']);
                         $this->handleRateChanges($limitRecord, $record);
-
                     }
                 }
             }
@@ -293,7 +298,7 @@ class Limit extends BaseSystemResource
         }
 
         /** Enrich records with limit_cache if requested. */
-        if($getLimitCache === true){
+        if ($getLimitCache === true) {
             $cacheData = $this->cache->getLimitsById($returnData['id']);
             $returnData['limit_cache_by_limit_id'] = $cacheData;
         }
@@ -312,6 +317,7 @@ class Limit extends BaseSystemResource
     /**
      * If the key is locked out and the Admin changes the rate, need to unlock and reset the limit record. Handles
      * each_user conditions as well
+     *
      * @param $dbRecord
      * @param $record
      */
@@ -325,7 +331,8 @@ class Limit extends BaseSystemResource
                 $users = User::where('is_active', 1)->where('is_sys_admin', 0)->get();
                 foreach ($users as $checkUser) {
                     $chkKey = $this->limitModel->resolveCheckKey($dbRecord['type'], $checkUser['id'],
-                        $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['endpoint'], $dbRecord['verb'], $dbRecord['period']);
+                        $dbRecord['role_id'], $dbRecord['service_id'], $dbRecord['endpoint'], $dbRecord['verb'],
+                        $dbRecord['period']);
                     if ($this->cache->hasLockout($chkKey)) {
                         $this->cache->clearById($dbRecord['id']);
                     }
@@ -337,9 +344,7 @@ class Limit extends BaseSystemResource
                     $this->cache->clearById($dbRecord['id']);
                 }
             }
-
         }
-
     }
 
     /**
@@ -355,7 +360,7 @@ class Limit extends BaseSystemResource
             /* set the resolved limit period number */
             $record['period'] = $limitPeriodNumber;
             /** Check for verb - default state is null for all verbs. */
-            if(!isset($record['verb'])){
+            if (!isset($record['verb'])) {
                 $record['verb'] = null;
             }
 
@@ -456,12 +461,12 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('No service exists for ' . $record['name'] . ' limit.');
                 }
 
-                if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
+                if (isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)) {
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
 
                 $outcome = $this->validateEndpoint($record['endpoint'], $record['service_id']);
-                if(!empty($outcome)){
+                if (!empty($outcome)) {
                     throw new BadRequestException(implode(' ', $outcome));
                 }
 
@@ -488,13 +493,13 @@ class Limit extends BaseSystemResource
                     throw new BadRequestException('endpoint must be specified with this limit type.');
                 }
 
-                if(isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)){
+                if (isset($record['verb']) && !in_array(mb_strtoupper($record['verb']), $this->allowedVerbs)) {
                     throw new BadRequestException('Verb is invalid or not allowed.');
                 }
 
                 $outcome = $this->validateEndpoint($record['endpoint'], $record['service_id']);
 
-                if(!empty($outcome)){
+                if (!empty($outcome)) {
                     throw new BadRequestException(implode(' ', $outcome));
                 }
 
@@ -508,6 +513,7 @@ class Limit extends BaseSystemResource
 
     /**
      * Validates an enpoint against known events as well as sanitizes incoming endpoint.
+     *
      * @param $endpoint
      * @param $serviceId
      *
@@ -520,7 +526,7 @@ class Limit extends BaseSystemResource
         $endpoint = $this->sanitizeEndpoint($endpoint);
 
         /** Check for blank endpoints */
-        if(empty($endpoint)){
+        if (empty($endpoint)) {
             return $outcome;
         }
 
@@ -539,10 +545,10 @@ class Limit extends BaseSystemResource
         /*if(count($eptParts) > 2){
             $outcome[] = 'Endpoint cannot have extra depth. ie, _schema/contact NOT _schema/contact/name';
         }*/
+
         /* if(!isset($eventMap[$serviceName][$serviceName. '.' . $eptParts[0]])){
             $outcome[] = 'Endpoint does not exist for the service ' . $serviceName . ' Endpoint: ' .$endpoint;
         }*/
-
 
         return $outcome;
     }
@@ -562,7 +568,6 @@ class Limit extends BaseSystemResource
         return Service::where('id', $id)->exists();
     }
 
-
     protected function nullify(&$record, $nullable = [])
     {
         if (!empty($nullable)) {
@@ -574,15 +579,17 @@ class Limit extends BaseSystemResource
 
     /**
      * Sanitizes an endpoint from leading and trailing slashes
+     *
      * @param $endpoint
      *
      * @return string Sanitized Endpoint.
      */
     protected function sanitizeEndpoint($endpoint)
     {
-        if(!is_null($endpoint)){
+        if (!is_null($endpoint)) {
             return preg_replace('/(\/)+$/', '', preg_replace('/^(\/)+/', '', $endpoint));
         }
+
         return $endpoint;
     }
 
@@ -591,12 +598,13 @@ class Limit extends BaseSystemResource
         $limits = LimitsModel::where('is_active', 1)->get();
 
         $lids = [];
-        foreach($limits as $limit){
+        foreach ($limits as $limit) {
             $lids[] = $limit->id;
         }
-        if(!empty($lids)){
+        if (!empty($lids)) {
             return ['system.limit.{id}.exceeded' => ['parameter' => ['id' => $lids]]];
         }
+
         return ['system.limit.{id}.exceeded' => ['parameter' => null]];
     }
 
