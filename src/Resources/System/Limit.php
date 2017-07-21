@@ -592,7 +592,10 @@ class Limit extends BaseSystemResource
         foreach($limits as $limit){
             $lids[] = $limit->id;
         }
-        return ['system.limit.{id}.exceeded' => ['parameter' => ['id' => (!empty($lids)) ? $lids : null ]]];
+        if(!empty($lids)){
+            return ['system.limit.{id}.exceeded' => ['parameter' => ['id' => $lids]]];
+        }
+        return ['system.limit.{id}.exceeded' => ['parameter' => null]];
     }
 
 }
