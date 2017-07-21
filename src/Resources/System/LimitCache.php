@@ -643,29 +643,32 @@ class LimitCache extends BaseSystemResource
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => [
-            'getSystemLimitCache' => [
-                'type' => 'object',
-                'properties' => [
-                    'resource' => [
-                        'type' => 'array',
-                        'description' => 'Array of accessible resources available to this path',
-                        'items' => [
-                            '$ref' => '#/definitions/SystemLimitCacheResponse'
+        return [
+            'paths'       => $apis,
+            'definitions' => [
+                'getSystemLimitCache'      => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'resource' => [
+                            'type'        => 'array',
+                            'description' => 'Array of accessible resources available to this path',
+                            'items'       => [
+                                '$ref' => '#/definitions/SystemLimitCacheResponse'
+                            ]
+                        ]
+                    ]
+                ],
+                'SystemLimitCacheResponse' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'id' => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Limit identifier.'
                         ]
                     ]
                 ]
-            ],
-            'SystemLimitCacheResponse' => [
-                'type' => 'object',
-                'properties' => [
-                    'id' => [
-                        'type' => 'integer',
-                        'format' => 'int32',
-                        'description' => 'Limit identifier.'
-                    ]
-                ]
             ]
-        ]];
+        ];
     }
 }
