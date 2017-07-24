@@ -2,23 +2,24 @@
 
 namespace DreamFactory\Core\Limit\Resources\System;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Events\ServiceEvent;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\BatchException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
-use Illuminate\Cache\RateLimiter;
+use DreamFactory\Core\Utility\ServiceRequest;
 use Illuminate\Cache\FileStore;
-use Illuminate\Filesystem\Filesystem;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Cache\RedisStore;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Redis\RedisManager;
-use DreamFactory\Core\Events\ServiceEvent;
-use Event;
 use Cache;
+use Event;
 
 class LimitCache extends BaseSystemResource
 {
@@ -507,7 +508,8 @@ class LimitCache extends BaseSystemResource
             $sendLimit['rate'] = (string)$sendLimit['rate'];
             $sendLimit['cache_key'] = $key;
             $data['limit'] = $sendLimit;
-            $data['request'] = \Request::toArray();
+            $request = new ServiceRequest();
+            $data['request'] = $request->toArray();
 
             /** Fire a generic event for the service */
             Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
