@@ -554,7 +554,16 @@ class LimitCache extends BaseSystemResource
                     'tags'        => [$serviceName],
                     'summary'     => 'deleteAllLimitCache() - Delete all Limits cache.',
                     'operationId' => 'deleteAllLimitCache',
-                    'parameters'  => [],
+                    'parameters'  => [
+                        [
+                            'name'        => 'allow_delete',
+                            'type'        => 'boolean',
+                            'required'    => false,
+                            'default'     => false,
+                            'in'          => 'query',
+                            'description' => 'Parameter to pass in confirming all cache entries can be deleted.'
+                        ]
+                    ],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
@@ -603,12 +612,12 @@ class LimitCache extends BaseSystemResource
                             'type'        => 'string',
                             'in'          => 'path',
                             'required'    => true,
-                        ],
+                        ]
                     ],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
+                            'schema'      => ['$ref' => '#/definitions/deleteSystemLimitCache']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -635,7 +644,7 @@ class LimitCache extends BaseSystemResource
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
+                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCacheSingle']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -650,19 +659,74 @@ class LimitCache extends BaseSystemResource
         return [
             'paths'       => $apis,
             'definitions' => [
-                'getSystemLimitCache'      => [
+                'getSystemLimitCache'       => [
                     'type'       => 'object',
                     'properties' => [
                         'resource' => [
                             'type'        => 'array',
                             'description' => 'Array of accessible resources available to this path',
                             'items'       => [
-                                '$ref' => '#/definitions/SystemLimitCacheResponse'
+                                'type'       => 'object',
+                                'properties' => [
+                                    'id'        => [
+                                        'type'        => 'integer',
+                                        'format'      => 'int32',
+                                        'description' => 'Limit identifier.'
+                                    ],
+                                    'key'       => [
+                                        'type'        => 'string',
+                                        'description' => 'Unique key that makes up a limit cache string (mostly internal).'
+                                    ],
+                                    'max'       => [
+                                        'type'        => 'integer',
+                                        'format'      => 'int32',
+                                        'description' => 'Max number of hits for a given period.'
+                                    ],
+                                    'attempts'  => [
+                                        'type'        => 'integer',
+                                        'format'      => 'int32',
+                                        'description' => 'Number of attempts already made.'
+                                    ],
+                                    'remaining' => [
+                                        'type'        => 'integer',
+                                        'format'      => 'int32',
+                                        'description' => 'Number of attempts left before limit is reached.'
+                                    ]
+                                ]
                             ]
                         ]
                     ]
                 ],
-                'SystemLimitCacheResponse' => [
+                'getSystemLimitCacheSingle' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'id'        => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Limit identifier.'
+                        ],
+                        'key'       => [
+                            'type'        => 'string',
+                            'description' => 'Unique key that makes up a limit cache string (mostly internal).'
+                        ],
+                        'max'       => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Max number of hits for a given period.'
+                        ],
+                        'attempts'  => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Number of attempts already made.'
+                        ],
+                        'remaining' => [
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'description' => 'Number of attempts left before limit is reached.'
+                        ]
+                    ]
+                ],
+                'deleteSystemLimitCache'    => [
                     'type'       => 'object',
                     'properties' => [
                         'id' => [
