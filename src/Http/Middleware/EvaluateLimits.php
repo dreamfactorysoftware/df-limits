@@ -1,13 +1,14 @@
 <?php
+
 namespace DreamFactory\Core\Limit\Http\Middleware;
 
 use DreamFactory\Core\Components\DfResponse;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Limit\Models\Limit;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
-use Illuminate\Cache\RateLimiter;
 use DreamFactory\Core\Models\Service;
 
 use Carbon\Carbon;
@@ -44,21 +45,20 @@ class EvaluateLimits
      */
     function handle($request, Closure $next)
     {
+        // Admins and script requested calls are immune to limit checks
+        if (Session::isSysAdmin() || (ServiceRequestorTypes::SCRIPT === Session::getRequestor())) {
+            return $next($request);
+        }
+
         $limitModel = new Limit();
         $userId = Session::getCurrentUserId();
         $roleId = Session::getRoleId();
-        $isAdmin = Session::isSysAdmin();
         $isBasicAuth = false; // Will be checked later
 
         $token = Session::getSessionToken();
 
-        /** Admins are immune to Limits... */
-        if ($isAdmin) {
-            return $next($request);
-        }
-
         /** If we don't have a token and we have gotten this far, check for Basic Auth */
-        if(!$token  && !is_null(Auth::user())){
+        if (!$token && !is_null(Auth::user())) {
             $isBasicAuth = true;
         }
 
@@ -73,7 +73,7 @@ class EvaluateLimits
         $overLimit = [];
 
         /* check for user overrides */
-        $overrides = ['user' => [], 'service' => [], 'endpoint' => [], 'verb'  => []];
+        $overrides = ['user' => [], 'service' => [], 'endpoint' => [], 'verb' => []];
         foreach ($limits as $limit) {
             /** User overrides each_user at these levels */
             if (!is_null($limit->user_id)) {
@@ -91,7 +91,7 @@ class EvaluateLimits
             }
 
             /** Verb overrides array, to be compared by type */
-            if(!is_null($limit->verb)){
+            if (!is_null($limit->verb)) {
                 $overrides['verb'][] = $limit;
             }
         }
@@ -125,20 +125,20 @@ class EvaluateLimits
              * route resource is counted, ie, _schema/table/field, etc only _schema/table.
              * Looks for a match and then overrides the resource as $derivedResource
              */
-            if(!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)){
+            if (!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)) {
                 Log::debug('route resource: ' . $routeResource);
                 $ep = $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
-                $size = (strlen($ep) > 0) ?  strlen($ep) : 0;
+                $size = (strlen($ep) > 0) ? strlen($ep) : 0;
 
                 /** Check for a * in the endpoint for wildcard Eps */
-                if(($pos = strrpos($ep, '*')) !== false){
+                if (($pos = strrpos($ep, '*')) !== false) {
                     /** Do we have a match up to the star? */
-                    if(0 === substr_compare($ep, $routeResource, 0, $pos)){
+                    if (0 === substr_compare($ep, $routeResource, 0, $pos)) {
                         $derivedResource = $ep;
                     }
                 } else {
                     /** Evaluate the incoming literally */
-                    if(0 === strcmp($ep, $routeResource)){
+                    if (0 === strcmp($ep, $routeResource)) {
                         $derivedResource = $ep;
                     }
                 }
@@ -146,17 +146,20 @@ class EvaluateLimits
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
-            $checkKey   = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id, $limit->endpoint, $dbVerb, $limit->period);
+            $checkKey = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id,
+                $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $limit->period);
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource,
+                $derivedVerb, $limit->period);
 
-            if(!empty($overrides['verb'])){
-                foreach($overrides['verb'] as $compareVerb){
+            if (!empty($overrides['verb'])) {
+                foreach ($overrides['verb'] as $compareVerb) {
                     /** First build a key without the verb to see if we get a match */
-                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $service->id, $derivedResource, $derivedVerb, $compareVerb->period);
+                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $service->id,
+                        $derivedResource, $derivedVerb, $compareVerb->period);
                     /** If the incoming key matches the verb key without the verb, and the verbs of the incoming request match the verb on the key,
                      * we have an override situation. */
-                    if($verbKey == $checkKey && $verbKey == $derivedKey && $compareVerb->verb == $method && $compareVerb->id !== $limit->id){
+                    if ($verbKey == $checkKey && $verbKey == $derivedKey && $compareVerb->verb == $method && $compareVerb->id !== $limit->id) {
                         $overrideVerb = true;
                     }
                 }
@@ -166,27 +169,28 @@ class EvaluateLimits
 
                 if (!$isUserLimit || ($isUserLimit && !is_null($token)) || ($isUserLimit && $isBasicAuth)) {
 
-                    if ($this->limiter->tooManyAttempts($checkKey, $limit, Limit::$limitIntervals[$limit->period])
-                    ) {
+                    if ($this->limiter->tooManyAttempts($checkKey, $limit, Limit::$limitIntervals[$limit->period])) {
                         /**
                          * Checks that the current user is not in the override structures for user and service. This would override
-                            a specific user condition against an each_user condition. However, counters will get ticked regardless.
+                         * a specific user condition against an each_user condition. However, counters will get ticked regardless.
                          * This will skip the overLimit condition for the each_user evaluation.
                          */
 
-                        if($limit->type == 'instance.each_user' && in_array($userId, $overrides['user']) ||
+                        if ($limit->type == 'instance.each_user' && in_array($userId, $overrides['user']) ||
                             $limit->type == 'instance.each_user.service' && in_array($userId, $overrides['service']) ||
-                            $limit->type == 'instance.each_user.service.endpoint' && in_array($userId, $overrides['endpoint']) ){
+                            $limit->type == 'instance.each_user.service.endpoint' && in_array($userId,
+                                $overrides['endpoint'])
+                        ) {
                             continue;
                         }
 
-                        if($overrideVerb === true ){
+                        if ($overrideVerb === true) {
                             continue;
                         }
 
                         $overLimit[] = [
-                            'id'    => $limit->id,
-                            'name'  => $limit->name,
+                            'id'     => $limit->id,
+                            'name'   => $limit->name,
                             'object' => $limit
                         ];
                     } else {
@@ -198,8 +202,9 @@ class EvaluateLimits
 
         if (!empty($overLimit)) {
 
-            $response = ResponseFactory::sendException(new TooManyRequestsException('API limit(s) exceeded. ', null, null,
-                    $overLimit));
+            $response = ResponseFactory::sendException(
+                new TooManyRequestsException('API limit(s) exceeded. ', null, null, $overLimit)
+            );
 
             return $this->addHeaders(
                 $response, $limit->rate,
