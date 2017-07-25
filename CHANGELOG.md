@@ -3,15 +3,16 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Trigger service modified event to clear event cache when limit is created or deleted
 
 ## [0.3.2] - 2017-06-26
 ### Added
-- Added functionality for basic-auth requests and each_user limits.
+- Added functionality for basic-auth requests and each_user limits
 
 ## [0.3.1] - 2017-06-14
 ### Added
-- Added casting to fix sqlite issue on active / inactive limits.
-
+- Added casting to fix sqlite issue on active / inactive limits
 
 ## [0.3.0] - 2017-06-05
 ### Added
