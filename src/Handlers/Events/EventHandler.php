@@ -1,5 +1,4 @@
 <?php
-
 namespace DreamFactory\Core\Limit\Handlers\Events;
 
 use DreamFactory\Core\Events\BaseRoleEvent;
@@ -40,6 +39,7 @@ class EventHandler
             ],
             static::class . '@handleServiceDeletedEvent'
         );
+
     }
 
     /**
@@ -53,7 +53,7 @@ class EventHandler
     {
         $userId = $event->user->id;
         $limits = Limit::where('user_id', $userId)->get();
-        if (!$limits->isEmpty()) {
+        if(!$limits->isEmpty()){
             $this->wipeLimits($limits);
         }
     }
@@ -62,7 +62,7 @@ class EventHandler
     {
         $serviceId = $event->service->id;
         $limits = Limit::where('service_id', $serviceId)->get();
-        if (!$limits->isEmpty()) {
+        if(!$limits->isEmpty()){
             $this->wipeLimits($limits);
         }
     }
@@ -71,14 +71,14 @@ class EventHandler
     {
         $roleId = $event->role->id;
         $limits = Limit::where('role_id', $roleId)->get();
-        if (!$limits->isEmpty()) {
+        if(!$limits->isEmpty()){
             $this->wipeLimits($limits);
         }
     }
 
     protected function wipeLimits($limits)
     {
-        foreach ($limits as $limit) {
+        foreach($limits as $limit){
             $limitCache = new LimitCache();
             /** Clear the cache for the limit we're disposing of */
             $limitCache->clearById($limit->id);
@@ -86,5 +86,6 @@ class EventHandler
             Limit::deleteById($limit->id);
         }
     }
+
 
 }
