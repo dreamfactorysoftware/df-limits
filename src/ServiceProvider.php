@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Limit;
 
 use DreamFactory\Core\Components\ServiceDocBuilder;
@@ -30,15 +31,15 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->publishes([$configPath => $publishPath], 'config');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->addMiddleware();
+
         // subscribe to all listened to events
         Event::subscribe(new EventHandler());
     }
 
-
     public function register()
     {
         // merge in limit config, https://laravel.com/docs/5.4/packages#resources
-        $this->mergeConfigFrom( __DIR__ . '/../config/limit.php', 'limit');
+        $this->mergeConfigFrom(__DIR__ . '/../config/limit.php', 'limit');
 
         // Add our service types.
         $this->app->resolving('df.system.resource', function (SystemResourceManager $df){
@@ -78,7 +79,6 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         } else {
             /** @noinspection PhpUndefinedMethodInspection */
             Route::middleware('df.evaluate_limits', EvaluateLimits::class);
-
         }
         Route::pushMiddlewareToGroup('df.api', 'df.evaluate_limits');
     }
