@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Fixed
+- Fix swagger def to pass validation
 
 ## [0.4.0] - 2017-07-27
 ### Added

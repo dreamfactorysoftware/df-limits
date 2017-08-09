@@ -554,8 +554,8 @@ class LimitCache extends BaseSystemResource
             $path           => [
                 'delete' => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'deleteAllLimitCache() - Delete all Limits cache.',
-                    'operationId' => 'deleteAllLimitCache',
+                    'summary'     => 'deleteAllLimitCaches() - Delete all Limits cache.',
+                    'operationId' => 'deleteAllLimitCaches',
                     'parameters'  => [
                         [
                             'name'        => 'allow_delete',
@@ -582,13 +582,13 @@ class LimitCache extends BaseSystemResource
                 ],
                 'get'    => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getSystemLimitCache() - Retrieve one or more Limit Cache entries.',
-                    'operationId' => 'getSystemLimitCache',
+                    'summary'     => 'getSystemLimitCaches() - Retrieve one or more Limit Cache entries.',
+                    'operationId' => 'getSystemLimitCaches',
                     'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCache']
+                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCaches']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -604,7 +604,7 @@ class LimitCache extends BaseSystemResource
                 'delete' => [
                     'tags'        => [$serviceName],
                     'summary'     => 'deleteLimitCache() - Reset limit counter for a specific limit Id.',
-                    'operationId' => 'deleteServiceCache',
+                    'operationId' => 'deleteLimitCache',
                     'consumes'    => ['application/json', 'application/xml'],
                     'produces'    => ['application/json', 'application/xml'],
                     'parameters'  => [
@@ -646,7 +646,7 @@ class LimitCache extends BaseSystemResource
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCacheSingle']
+                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCache']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -661,7 +661,7 @@ class LimitCache extends BaseSystemResource
         return [
             'paths'       => $apis,
             'definitions' => [
-                'getSystemLimitCache'       => [
+                'getSystemLimitCaches'       => [
                     'type'       => 'object',
                     'properties' => [
                         'resource' => [
@@ -699,7 +699,7 @@ class LimitCache extends BaseSystemResource
                         ]
                     ]
                 ],
-                'getSystemLimitCacheSingle' => [
+                'getSystemLimitCache' => [
                     'type'       => 'object',
                     'properties' => [
                         'id'        => [
