@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Limit;
 
-use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Resources\System\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
@@ -14,8 +13,6 @@ use Event;
 
 class ServiceProvider extends \Illuminate\Support\ServiceProvider
 {
-    use ServiceDocBuilder;
-
     /**
      * @inheritdoc
      */
