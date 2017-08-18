@@ -2,15 +2,12 @@
 namespace DreamFactory\Core\Limit\Handlers\Events;
 
 use DreamFactory\Core\Events\BaseRoleEvent;
-use DreamFactory\Core\Events\BaseServiceEvent;
 use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\UserDeletedEvent;
-use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
-use DreamFactory\Core\Events\ServiceModifiedEvent;
-use Illuminate\Contracts\Events\Dispatcher;
 use DreamFactory\Core\Limit\Models\Limit;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
+use Illuminate\Contracts\Events\Dispatcher;
 
 class EventHandler
 {
