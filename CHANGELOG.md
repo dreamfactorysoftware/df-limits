@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2017-08-17
+### Fixed
+- Evaluate limits bug fix
+
 ## [0.5.0] - 2017-08-17
 ### Changed
 - Reworked API doc usage and generation
@@ -46,7 +50,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.1.0] - 2017-03-03
 First official release of this library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.3.2...0.4.0
 [0.3.2]: https://github.com/dreamfactorysoftware/df-limits/compare/0.3.1...0.3.2

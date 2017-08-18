@@ -67,6 +67,7 @@ class EvaluateLimits
         $method = $request->method();
 
         $service = Service::where('name', $routeService)->first();
+        $serviceId = (is_object($service)) ? $service->id : null;
 
         /** Important - only evaluate against active limits */
         $limits = Limit::where('is_active', 1)->get();
@@ -149,13 +150,13 @@ class EvaluateLimits
             $checkKey = $limitModel->resolveCheckKey($limit->type, $dbUser, $limit->role_id, $limit->service_id,
                 $limit->endpoint, $dbVerb, $limit->period);
             /* $derivedKey key built from the current request - to check and match against the limit from $checkKey */
-            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $service->id, $derivedResource,
+            $derivedKey = $limitModel->resolveCheckKey($limit->type, $userId, $roleId, $serviceId, $derivedResource,
                 $derivedVerb, $limit->period);
 
             if (!empty($overrides['verb'])) {
                 foreach ($overrides['verb'] as $compareVerb) {
                     /** First build a key without the verb to see if we get a match */
-                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $service->id,
+                    $verbKey = $limitModel->resolveCheckKey($compareVerb->type, $userId, $roleId, $serviceId,
                         $derivedResource, $derivedVerb, $compareVerb->period);
                     /** If the incoming key matches the verb key without the verb, and the verbs of the incoming request match the verb on the key,
                      * we have an override situation. */
