@@ -545,22 +545,25 @@ class LimitCache extends BaseSystemResource
 
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $resourceName = strtolower($this->name);
         $path = '/' . $resourceName;
 
         return [
             $path           => [
                 'get'    => [
-                    'summary'     => 'getSystemLimitCaches() - Retrieve one or more Limit Cache entries.',
-                    'operationId' => 'getSystemLimitCaches',
+                    'summary'     => 'Retrieve one or more Limit Cache entries.',
+                    'description' => 'This clears and resets all limits cache counters in the system.',
+                    'operationId' => 'get' . $capitalized . 'LimitCaches',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/LimitCachesResponse']
                     ],
-                    'description' => 'This clears and resets all limits cache counters in the system.',
                 ],
                 'delete' => [
-                    'summary'     => 'deleteSystemLimitCaches() - Delete all Limits cache.',
-                    'operationId' => 'deleteSystemLimitCaches',
+                    'summary'     => 'Delete all Limits cache.',
+                    'description' => 'This clears and resets all limits cache counters in the system.',
+                    'operationId' => 'delete' . $capitalized . 'LimitCaches',
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FORCE),
@@ -568,7 +571,6 @@ class LimitCache extends BaseSystemResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'This clears and resets all limits cache counters in the system.',
                 ],
             ],
             $path . '/{id}' => [
@@ -582,20 +584,20 @@ class LimitCache extends BaseSystemResource
                     ]
                 ],
                 'get'        => [
-                    'summary'     => 'getSystemLimitCache() - Retrieve one Limit Cache entry.',
-                    'operationId' => 'getSystemLimitCache',
+                    'summary'     => 'Retrieve one Limit Cache entry.',
+                    'description' => 'This will retrieve the limit counts for a specific limit Id.',
+                    'operationId' => 'get' . $capitalized . 'LimitCache',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/LimitCacheResponse']
                     ],
-                    'description' => 'This will retrieve the limit counts for a specific limit Id.',
                 ],
                 'delete'     => [
-                    'summary'     => 'deleteSystemLimitCache() - Reset limit counter for a specific limit Id.',
-                    'operationId' => 'deleteSystemLimitCache',
+                    'summary'     => 'Reset limit counter for a specific limit Id.',
+                    'description' => 'This will reset the limit counter for a specific limit Id.',
+                    'operationId' => 'delete' . $capitalized . 'LimitCache',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/LimitCacheResponse']
                     ],
-                    'description' => 'This will reset the limit counter for a specific limit Id.',
                 ],
             ],
         ];
