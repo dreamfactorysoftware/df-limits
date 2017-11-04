@@ -93,7 +93,7 @@ class LimitCache extends BaseSystemResource
                     ]
                 ];
                 $redisDatabase = new RedisManager(array_get($cacheConfig, 'client'), $server);
-                $redisPrefix   = (getenv('LIMIT_CACHE_PREFIX')) ?: null;
+                $redisPrefix = (getenv('LIMIT_CACHE_PREFIX')) ?: null;
                 $store = new RedisStore($redisDatabase, $redisPrefix);
 
                 break;
@@ -153,14 +153,6 @@ class LimitCache extends BaseSystemResource
     protected function handleDELETE()
     {
         $params = $this->request->getParameters();
-        if (isset($params['allow_delete']) && filter_var($params['allow_delete'], FILTER_VALIDATE_BOOLEAN)) {
-            $this->cache->flush();
-            $result = [
-                'success' => true
-            ];
-
-            return ResponseFactory::create($result);
-        }
 
         if (!empty($this->resource)) {
             $this->clearById($this->resource, $params);
@@ -170,6 +162,13 @@ class LimitCache extends BaseSystemResource
         } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
             $result = $this->clearByIds($records, $params);
         } else {
+            // protect against accidentally clearing all limit caches
+            if ($this->request->getParameterAsBool('allow_delete') || $this->request->getParameterAsBool('force')) {
+                $this->cache->flush();
+                $result = ['success' => true];
+
+                return ResponseFactory::create($result);
+            }
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
@@ -544,202 +543,115 @@ class LimitCache extends BaseSystemResource
         return false;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
+        $resourceName = strtolower($this->name);
+        $path = '/' . $resourceName;
 
-        $apis = [
+        return [
             $path           => [
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteAllLimitCaches() - Delete all Limits cache.',
-                    'operationId' => 'deleteAllLimitCaches',
-                    'parameters'  => [
-                        [
-                            'name'        => 'allow_delete',
-                            'type'        => 'boolean',
-                            'required'    => false,
-                            'default'     => false,
-                            'in'          => 'query',
-                            'description' => 'Parameter to pass in confirming all cache entries can be deleted.'
-                        ]
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
-                    'description' => 'This clears and resets all limits cache counters in the system.',
-                ],
                 'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'getSystemLimitCaches() - Retrieve one or more Limit Cache entries.',
-                    'operationId' => 'getSystemLimitCaches',
-                    'parameters'  => [],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCaches']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
+                    'summary'     => 'Retrieve one or more Limit Cache entries.',
                     'description' => 'This clears and resets all limits cache counters in the system.',
+                    'operationId' => 'get' . $capitalized . 'LimitCaches',
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/LimitCachesResponse']
+                    ],
+                ],
+                'delete' => [
+                    'summary'     => 'Delete all Limits cache.',
+                    'description' => 'This clears and resets all limits cache counters in the system.',
+                    'operationId' => 'delete' . $capitalized . 'LimitCaches',
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FORCE),
+                    ],
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/Success']
+                    ],
                 ],
             ],
             $path . '/{id}' => [
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteLimitCache() - Reset limit counter for a specific limit Id.',
-                    'operationId' => 'deleteLimitCache',
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
-                    'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the limit to reset the counter.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ]
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/deleteSystemLimitCache']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'This will reset the limit counter for a specific limit Id.',
+                'parameters' => [
+                    [
+                        'name'        => 'id',
+                        'description' => 'Identifier of the limit to reset the counter.',
+                        'schema'      => ['type' => 'string'],
+                        'in'          => 'path',
+                        'required'    => true,
+                    ]
                 ],
-                'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'getSystemLimitCache() - Retrieve one Limit Cache entry.',
-                    'operationId' => 'getSystemLimitCache',
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
-                    'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the limit for the cache entry.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/getSystemLimitCache']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
+                'get'        => [
+                    'summary'     => 'Retrieve one Limit Cache entry.',
                     'description' => 'This will retrieve the limit counts for a specific limit Id.',
+                    'operationId' => 'get' . $capitalized . 'LimitCache',
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/LimitCacheResponse']
+                    ],
+                ],
+                'delete'     => [
+                    'summary'     => 'Reset limit counter for a specific limit Id.',
+                    'description' => 'This will reset the limit counter for a specific limit Id.',
+                    'operationId' => 'delete' . $capitalized . 'LimitCache',
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/LimitCacheResponse']
+                    ],
                 ],
             ],
         ];
+    }
 
+    protected function getApiDocRequests()
+    {
+        return []; // no requests
+    }
+
+    protected function getApiDocSchemas()
+    {
         return [
-            'paths'       => $apis,
-            'definitions' => [
-                'getSystemLimitCaches'       => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'resource' => [
-                            'type'        => 'array',
-                            'description' => 'Array of accessible resources available to this path',
-                            'items'       => [
-                                'type'       => 'object',
-                                'properties' => [
-                                    'id'        => [
-                                        'type'        => 'integer',
-                                        'format'      => 'int32',
-                                        'description' => 'Limit identifier.'
-                                    ],
-                                    'key'       => [
-                                        'type'        => 'string',
-                                        'description' => 'Unique key that makes up a limit cache string (mostly internal).'
-                                    ],
-                                    'max'       => [
-                                        'type'        => 'integer',
-                                        'format'      => 'int32',
-                                        'description' => 'Max number of hits for a given period.'
-                                    ],
-                                    'attempts'  => [
-                                        'type'        => 'integer',
-                                        'format'      => 'int32',
-                                        'description' => 'Number of attempts already made.'
-                                    ],
-                                    'remaining' => [
-                                        'type'        => 'integer',
-                                        'format'      => 'int32',
-                                        'description' => 'Number of attempts left before limit is reached.'
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ],
-                'getSystemLimitCache' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'id'        => [
-                            'type'        => 'integer',
-                            'format'      => 'int32',
-                            'description' => 'Limit identifier.'
-                        ],
-                        'key'       => [
-                            'type'        => 'string',
-                            'description' => 'Unique key that makes up a limit cache string (mostly internal).'
-                        ],
-                        'max'       => [
-                            'type'        => 'integer',
-                            'format'      => 'int32',
-                            'description' => 'Max number of hits for a given period.'
-                        ],
-                        'attempts'  => [
-                            'type'        => 'integer',
-                            'format'      => 'int32',
-                            'description' => 'Number of attempts already made.'
-                        ],
-                        'remaining' => [
-                            'type'        => 'integer',
-                            'format'      => 'int32',
-                            'description' => 'Number of attempts left before limit is reached.'
-                        ]
-                    ]
-                ],
-                'deleteSystemLimitCache'    => [
-                    'type'       => 'object',
-                    'properties' => [
-                        'id' => [
-                            'type'        => 'integer',
-                            'format'      => 'int32',
-                            'description' => 'Limit identifier.'
+            'LimitCachesResponse' => [
+                'type'       => 'object',
+                'properties' => [
+                    'resource' => [
+                        'type'        => 'array',
+                        'description' => 'Array of accessible resources available to this path',
+                        'items'       => [
+                            '$ref' => '#/components/schemas/LimitCacheResponse',
                         ]
                     ]
                 ]
-            ]
+            ],
+            'LimitCacheResponse'  => [
+                'type'       => 'object',
+                'properties' => [
+                    'id'        => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Limit identifier.'
+                    ],
+                    'key'       => [
+                        'type'        => 'string',
+                        'description' => 'Unique key that makes up a limit cache string (mostly internal).'
+                    ],
+                    'max'       => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Max number of hits for a given period.'
+                    ],
+                    'attempts'  => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Number of attempts already made.'
+                    ],
+                    'remaining' => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Number of attempts left before limit is reached.'
+                    ]
+                ]
+            ],
         ];
     }
 }
