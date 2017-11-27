@@ -9,7 +9,7 @@ use DreamFactory\Core\Exceptions\BatchException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Resources\System\BaseSystemResource;
+use DreamFactory\Core\System\Resources\BaseSystemResource;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceRequest;

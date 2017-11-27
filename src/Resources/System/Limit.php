@@ -3,7 +3,7 @@
 namespace DreamFactory\Core\Limit\Resources\System;
 
 use DreamFactory\Core\Events\ServiceModifiedEvent;
-use DreamFactory\Core\Resources\System\BaseSystemResource;
+use DreamFactory\Core\System\Resources\BaseSystemResource;
 use DreamFactory\Core\Limit\Models\Limit as LimitsModel;
 use DreamFactory\Core\Enums\DateTimeIntervals;
 use DreamFactory\Core\Utility\ResourcesWrapper;
