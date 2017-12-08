@@ -9,13 +9,13 @@ use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Models\Service;
 
-use Carbon\Carbon;
 use Auth;
-use Route;
+use Carbon\Carbon;
 use Closure;
 use Log;
+use Route;
+use ServiceManager;
 
 
 class EvaluateLimits
@@ -66,8 +66,7 @@ class EvaluateLimits
         $routeResource = Route::getcurrentRoute()->parameter('resource');
         $method = $request->method();
 
-        $service = Service::where('name', $routeService)->first();
-        $serviceId = (is_object($service)) ? $service->id : null;
+        $serviceId = ServiceManager::getServiceIdByName($routeService);
 
         /** Important - only evaluate against active limits */
         $limits = Limit::where('is_active', 1)->get();
