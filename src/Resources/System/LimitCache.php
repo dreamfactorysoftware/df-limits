@@ -341,7 +341,7 @@ class LimitCache extends BaseSystemResource
     {
         if ($this->cache->has($key)) {
             return $this->cache->get($key, 0);
-        } elseif ($this->cache->has($key . ':lockout')) {
+        } elseif ($this->cache->has($key . ':timer')) {
             return $max;
         } else {
             return 0;
@@ -357,7 +357,7 @@ class LimitCache extends BaseSystemResource
     public function retriesLeft($key, $maxAttempts)
     {
         $attempts = $this->limiter->attempts($key);
-        if ($this->cache->has($key . ':lockout') || $attempts > $maxAttempts) {
+        if ($this->cache->has($key . ':timer') || $attempts > $maxAttempts) {
             return 0;
         }
 
@@ -494,12 +494,12 @@ class LimitCache extends BaseSystemResource
      */
     public function tooManyAttempts($key, $limit, $decayMinutes = 1)
     {
-        if ($this->cache->has($key . ':lockout')) {
+        if ($this->cache->has($key . ':timer')) {
             return true;
         }
 
         if ($this->attempts($key) >= $limit->rate) {
-            $this->cache->add($key . ':lockout', time() + ($decayMinutes * 60), $decayMinutes);
+            $this->cache->add($key . ':timer', time() + ($decayMinutes * 60), $decayMinutes);
 
             /** Some conversion and enrichment */
             $data = [];
@@ -536,7 +536,7 @@ class LimitCache extends BaseSystemResource
 
     public function hasLockout($key)
     {
-        if ($this->cache->has($key . ':lockout')) {
+        if ($this->cache->has($key . ':timer')) {
             return true;
         }
 
