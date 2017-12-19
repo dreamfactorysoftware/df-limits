@@ -194,6 +194,17 @@ class Limit extends BaseSystemResource
 
         $result = parent::handleDELETE();
 
+        /** Handle both resource bulk and single returns */
+        if (isset($result['resource']) && is_array($result['resource'])) {
+            foreach ($result['resource'] as &$return) {
+                if (isset($return['period'])) {
+                    $return['period'] = LimitsModel::$limitPeriods[$return['period']];
+                }
+            }
+        } elseif (isset($result['period'])) {
+            $result['period'] = LimitsModel::$limitPeriods[$result['period']];
+        }
+
         // Use this event for now to clear event cache, which tracks limits for scripting
         event(new ServiceModifiedEvent(
             new Service([
