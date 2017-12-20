@@ -71,12 +71,12 @@ class Limit extends BaseSystemModel
     ];
 
     protected $casts = [
-        'rate'      => 'integer',
-        'period'    => 'integer',
-        'verb'      => 'string',
-        'is_active' => 'boolean',
-        'user_id'   => 'integer',
-        'role_id'   => 'integer',
+        'rate'       => 'integer',
+        'period'     => 'integer',
+        'verb'       => 'string',
+        'is_active'  => 'boolean',
+        'user_id'    => 'integer',
+        'role_id'    => 'integer',
         'service_id' => 'integer',
     ];
 
@@ -146,7 +146,6 @@ class Limit extends BaseSystemModel
             return $key . '.' . static::$limitPeriods[$limitPeriod];
         }
     }
-
 
     /**
      * {@inheritdoc}
