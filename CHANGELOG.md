@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [0.7.0] - 2017-12-28
+### Added
+- Added package discovery
+### Changed
+- DF-1150 Update copyright and support email
+- Used the new df-system repo
+- Used beefed up ServiceManager methods
+### Fixed
+- Fixed for updated Laravel RateLimiter
+- Fixed return as INT on DELETE, both single and bulk resource
+- Fixed resolve limit period on 429 errors
+
 ## [0.6.0] - 2017-11-03
 - Add subscription requirements to service provider
 - Upgrade Swagger to OpenAPI 3.0 specification
@@ -57,7 +69,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.1.0] - 2017-03-03
 First official release of this library.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-limits/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.2...0.6.0
 [0.5.2]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/dreamfactorysoftware/df-limits/compare/0.5.0...0.5.1
