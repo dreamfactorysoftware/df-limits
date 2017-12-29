@@ -3,8 +3,8 @@
 namespace DreamFactory\Core\Limit;
 
 use DreamFactory\Core\Enums\LicenseLevel;
-use DreamFactory\Core\Resources\System\SystemResourceManager;
-use DreamFactory\Core\Resources\System\SystemResourceType;
+use DreamFactory\Core\System\Components\SystemResourceManager;
+use DreamFactory\Core\System\Components\SystemResourceType;
 use DreamFactory\Core\Limit\Resources\System\Limit as LimitsResource;
 use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Limit\Http\Middleware\EvaluateLimits;

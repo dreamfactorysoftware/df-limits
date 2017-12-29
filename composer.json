@@ -1,35 +1,41 @@
 {
-  "name": "dreamfactory/df-limits",
+  "name":        "dreamfactory/df-limits",
   "description": "Limits configuration package for DreamFactory.",
-  "keywords": [
+  "keywords":    [
     "dreamfactory",
     "limits"
   ],
-  "homepage": "https://www.dreamfactory.com/",
-  "license": "Apache-2.0",
-  "authors": [
+  "homepage":    "https://www.dreamfactory.com/",
+  "license":     "Apache-2.0",
+  "authors":     [
     {
-      "name": "Charles Harmon",
+      "name":  "Charles Harmon",
       "email": "charlesharmon@dreamfactory.com"
     }
   ],
-  "support": {
-    "email": "support@dreamfactory.com",
+  "support":     {
+    "email":  "dspsupport@dreamfactory.com",
     "source": "https://github.com/dreamfactorysoftware/df-limits",
     "issues": "https://github.com/dreamfactorysoftware/df-limits/issues",
-    "wiki": "https://wiki.dreamfactory.com"
+    "wiki":   "https://wiki.dreamfactory.com"
   },
-  "require": {
-    "dreamfactory/df-core": "~0.13.0"
+  "require":     {
+    "dreamfactory/df-core":   "~0.14.0",
+    "dreamfactory/df-system": "~0.1.0"
   },
-  "autoload": {
+  "autoload":    {
     "psr-4": {
       "DreamFactory\\Core\\Limit\\": "src/"
     }
   },
-  "extra": {
+  "extra":       {
     "branch-alias": {
-      "dev-develop": "0.6.x-dev"
+      "dev-develop": "0.7.x-dev"
+    },
+    "laravel":      {
+      "providers": [
+        "DreamFactory\\Core\\Limit\\ServiceProvider"
+      ]
     }
   }
 }

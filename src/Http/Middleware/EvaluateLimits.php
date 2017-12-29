@@ -9,14 +9,13 @@ use DreamFactory\Core\Limit\Resources\System\LimitCache;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Exceptions\TooManyRequestsException;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Models\Service;
 
-use Carbon\Carbon;
 use Auth;
-use Route;
+use Carbon\Carbon;
 use Closure;
 use Log;
-
+use Route;
+use ServiceManager;
 
 class EvaluateLimits
 {
@@ -66,8 +65,7 @@ class EvaluateLimits
         $routeResource = Route::getcurrentRoute()->parameter('resource');
         $method = $request->method();
 
-        $service = Service::where('name', $routeService)->first();
-        $serviceId = (is_object($service)) ? $service->id : null;
+        $serviceId = ServiceManager::getServiceIdByName($routeService);
 
         /** Important - only evaluate against active limits */
         $limits = Limit::where('is_active', 1)->get();
@@ -128,7 +126,8 @@ class EvaluateLimits
              */
             if (!is_null($limit->endpoint) && !empty($limit->endpoint) && !empty($routeResource)) {
                 Log::debug('route resource: ' . $routeResource);
-                $ep = $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
+                $ep =
+                    $limit->endpoint; // You have to pull out endpoint due to model conversion stuff - won't work in substr_compare...
                 $size = (strlen($ep) > 0) ? strlen($ep) : 0;
 
                 /** Check for a * in the endpoint for wildcard Eps */
@@ -143,7 +142,6 @@ class EvaluateLimits
                         $derivedResource = $ep;
                     }
                 }
-
             }
 
             /* $checkKey key built from the database - these are the conditions we're checking for */
@@ -160,7 +158,10 @@ class EvaluateLimits
                         $derivedResource, $derivedVerb, $compareVerb->period);
                     /** If the incoming key matches the verb key without the verb, and the verbs of the incoming request match the verb on the key,
                      * we have an override situation. */
-                    if ($verbKey == $checkKey && $verbKey == $derivedKey && $compareVerb->verb == $method && $compareVerb->id !== $limit->id) {
+                    if ($verbKey == $checkKey &&
+                        $verbKey == $derivedKey &&
+                        $compareVerb->verb == $method &&
+                        $compareVerb->id !== $limit->id) {
                         $overrideVerb = true;
                     }
                 }
@@ -189,10 +190,15 @@ class EvaluateLimits
                             continue;
                         }
 
+                        $limitData = $limit->toArray();
+
+                        if(isset($limitData['period']) && is_int($limitData['period'])){
+                            $limitData['period'] = Limit::$limitPeriods[$limitData['period']];
+                        }
                         $overLimit[] = [
                             'id'     => $limit->id,
                             'name'   => $limit->name,
-                            'object' => $limit
+                            'object' => $limitData
                         ];
                     } else {
                         $this->limiter->hit($checkKey, Limit::$limitIntervals[$limit->period]);
