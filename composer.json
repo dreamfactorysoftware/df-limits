@@ -19,9 +19,15 @@
     "issues": "https://github.com/dreamfactorysoftware/df-limits/issues",
     "wiki":   "https://wiki.dreamfactory.com"
   },
+  "repositories": [
+  {
+    "type": "vcs",
+    "url":  "https://github.com/dreamfactorysoftware/df-system"
+  }
+  ],
   "require":     {
     "dreamfactory/df-core":   "~0.14.0",
-    "dreamfactory/df-system": "~0.1.0"
+    "dreamfactory/df-system": "feature/update-server"
   },
   "autoload":    {
     "psr-4": {
