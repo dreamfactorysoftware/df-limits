@@ -20,14 +20,6 @@ class Limit extends BaseSystemResource
      */
     protected static $model = LimitsModel::class;
 
-    protected $periods = [
-        'Minute'  => DateTimeIntervals::MINUTES_PER_MINUTE,
-        'Hour'    => DateTimeIntervals::MINUTES_PER_HOUR,
-        'Day'     => DateTimeIntervals::MINUTES_PER_DAY,
-        '7 Days'  => DateTimeIntervals::MINUTES_PER_WEEK,
-        '30 Days' => DateTimeIntervals::MINUTES_PER_MONTH,
-    ];
-
     protected $allowedVerbs = [
         'GET',
         'POST',

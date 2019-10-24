@@ -44,11 +44,11 @@ class Limit extends BaseSystemModel
     ];
 
     public static $limitIntervals = [
-        DateTimeIntervals::MINUTES_PER_MINUTE,
-        DateTimeIntervals::MINUTES_PER_HOUR,
-        DateTimeIntervals::MINUTES_PER_DAY,
-        DateTimeIntervals::MINUTES_PER_WEEK,
-        DateTimeIntervals::MINUTES_PER_MONTH,
+        DateTimeIntervals::SECONDS_PER_MINUTE,
+        DateTimeIntervals::SECONDS_PER_HOUR,
+        DateTimeIntervals::SECONDS_PER_DAY,
+        DateTimeIntervals::SECONDS_PER_WEEK,
+        DateTimeIntervals::SECONDS_PER_MONTH,
     ];
 
     protected $hidden = [

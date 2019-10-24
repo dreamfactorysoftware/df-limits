@@ -472,13 +472,13 @@ class LimitCache extends BaseSystemResource
      * Increment the counter for a given key for a given decay time.
      *
      * @param  string $key
-     * @param  int    $decayMinutes
+     * @param  int    $decaySeconds
      *
      * @return int
      */
-    public function hit($key, $decayMinutes = 1)
+    public function hit($key, $decaySeconds = 60)
     {
-        $this->cache->add($key, 0, $decayMinutes);
+        $this->cache->add($key, 0, $decaySeconds);
 
         return (int)$this->cache->increment($key);
     }
@@ -488,18 +488,18 @@ class LimitCache extends BaseSystemResource
      *
      * @param  string $key
      * @param  int    $limit
-     * @param  int    $decayMinutes
+     * @param  int    $decaySeconds
      *
      * @return bool
      */
-    public function tooManyAttempts($key, $limit, $decayMinutes = 1)
+    public function tooManyAttempts($key, $limit, $decaySeconds = 60)
     {
         if ($this->cache->has($key . ':timer')) {
             return true;
         }
 
         if ($this->attempts($key) >= $limit->rate) {
-            $this->cache->add($key . ':timer', time() + ($decayMinutes * 60), $decayMinutes);
+            $this->cache->add($key . ':timer', time() + ($decaySeconds * 60), $decaySeconds);
 
             /** Some conversion and enrichment */
             $data = [];
@@ -512,9 +512,9 @@ class LimitCache extends BaseSystemResource
             $data['request'] = $request->toArray();
 
             /** Fire a generic event for the service */
-            Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
+            Event::dispatch(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
             /** Fire the specific event */
-            Event::fire(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $data));
+            Event::dispatch(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $data));
 
             return $this->cache->forget($key);
         }
