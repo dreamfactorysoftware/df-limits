@@ -35,15 +35,6 @@ class LimitsTest extends TestCase
         "last_modified_by_id" => 1
     ];
 
-    protected $periods = [
-        'Minute'  => DateTimeIntervals::MINUTES_PER_MINUTE,
-        'Hour'    => DateTimeIntervals::MINUTES_PER_HOUR,
-        'Day'     => DateTimeIntervals::MINUTES_PER_DAY,
-        '7 Days'  => DateTimeIntervals::MINUTES_PER_WEEK,
-        '30 Days' => DateTimeIntervals::MINUTES_PER_MONTH,
-    ];
-
-
     public function setUp()
     {
         parent::setUp();
