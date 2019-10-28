@@ -512,9 +512,9 @@ class LimitCache extends BaseSystemResource
             $data['request'] = $request->toArray();
 
             /** Fire a generic event for the service */
-            Event::fire(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
+            Event::dispatch(new ServiceEvent('system.limit.{id}.exceeded', $limit->id, $data));
             /** Fire the specific event */
-            Event::fire(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $data));
+            Event::dispatch(new ServiceEvent(sprintf('system.limit.%s.exceeded', $limit->id), null, $data));
 
             return $this->cache->forget($key);
         }
