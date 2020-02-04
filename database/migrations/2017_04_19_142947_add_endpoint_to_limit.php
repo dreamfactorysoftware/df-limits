@@ -14,9 +14,12 @@ class AddEndpointToLimit extends Migration
     public function up()
     {
         Schema::table('limits', function (Blueprint $t) {
-            $t->dropForeign('limits_role_id_foreign');
-            $t->dropForeign('limits_service_id_foreign');
-            $t->dropForeign('limits_user_id_foreign');
+            if(DB::getDriverName() !== 'sqlite' ) {
+                $t->dropForeign('limits_role_id_foreign');
+                $t->dropForeign('limits_service_id_foreign');
+                $t->dropForeign('limits_user_id_foreign');
+            }
+
             /** Add new columns */
             $t->text('endpoint')->nullable();
             $t->enum('verb', array('GET', 'POST', 'PUT', 'PATCH', 'DELETE'))->nullable();

@@ -22,11 +22,13 @@ class CreateLimitsTable extends Migration
                 $t->integer('rate');
                 $t->integer('period');
                 $t->integer('user_id')->unsigned()->nullable();
-                $t->foreign('user_id')->references('id')->on('user');
                 $t->integer('role_id')->unsigned()->nullable();
-                $t->foreign('role_id')->references('id')->on('role');
                 $t->integer('service_id')->unsigned()->nullable();
-                $t->foreign('service_id')->references('id')->on('service');
+                if(DB::getDriverName() !== 'sqlite' ) {
+                    $t->foreign('user_id')->references('id')->on('user');
+                    $t->foreign('role_id')->references('id')->on('role');
+                    $t->foreign('service_id')->references('id')->on('service');
+                }
                 $t->string('name');
                 $t->string('description')->nullable();
                 $t->tinyInteger('is_active')->default(1);
