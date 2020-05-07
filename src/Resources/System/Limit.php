@@ -142,8 +142,16 @@ class Limit extends BaseSystemResource
         $this->request->setPayloadData(ResourcesWrapper::wrapResources($records));
         $response = parent::handlePOST();
         $returnData = $response->getContent();
-        if (is_array($returnData['resource'])) {
-            foreach ($returnData['resource'] as &$return) {
+
+        // There could be no 'resource' wrapper because of DF_ALWAYS_WRAP_RESOURCES
+        if(isset($returnData['resource'])) {
+            $data = &$returnData['resource'];
+        } else {
+            $data = &$returnData;
+        }
+
+        if (is_array($data)) {
+            foreach ($data as &$return) {
                 if (isset($return['period'])) {
                     $return['period'] = LimitsModel::$limitPeriods[$return['period']];
                 }
