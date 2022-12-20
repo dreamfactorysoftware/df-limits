@@ -263,7 +263,7 @@ class Limit extends BaseSystemResource
             $updateRecords = [];
             $idParts = explode(',', $ids);
             foreach ($idParts as $idBuild) {
-                $record = (isset($records[0])) ? $records[0] : $records;
+                $record = $records[0] ?? $records;
                 $modelRecord = LimitsModel::where('id', $idBuild)->first();
                 if (empty($modelRecord)) {
                     continue;

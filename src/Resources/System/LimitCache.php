@@ -20,6 +20,8 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Redis\RedisManager;
 use Cache;
 use Event;
+use Arr;
+use Str;
 
 class LimitCache extends BaseSystemResource
 {
@@ -86,13 +88,13 @@ class LimitCache extends BaseSystemResource
                 $server = [
                     'cluster' => false,
                     'default' => [
-                        'host'     => array_get($cacheConfig, 'host'),
-                        'port'     => array_get($cacheConfig, 'port'),
-                        'database' => array_get($cacheConfig, 'database'),
-                        'password' => array_get($cacheConfig, 'password'),
+                        'host'     => Arr::get($cacheConfig, 'host'),
+                        'port'     => Arr::get($cacheConfig, 'port'),
+                        'database' => Arr::get($cacheConfig, 'database'),
+                        'password' => Arr::get($cacheConfig, 'password'),
                     ]
                 ];
-                $redisDatabase = new RedisManager(array_get($cacheConfig, 'client'), $server);
+                $redisDatabase = new RedisManager(Arr::get($cacheConfig, 'client'), $server);
                 $redisPrefix = (getenv('LIMIT_CACHE_PREFIX')) ?: null;
                 $store = new RedisStore($redisDatabase, $redisPrefix);
 
@@ -546,7 +548,7 @@ class LimitCache extends BaseSystemResource
     protected function getApiDocPaths()
     {
         $service = $this->getServiceName();
-        $capitalized = camelize($service);
+        $capitalized = Str::camel($service);
         $resourceName = strtolower($this->name);
         $path = '/' . $resourceName;
 
