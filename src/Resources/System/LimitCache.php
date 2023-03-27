@@ -94,7 +94,8 @@ class LimitCache extends BaseSystemResource
                         'password' => Arr::get($cacheConfig, 'password'),
                     ]
                 ];
-                $redisDatabase = new RedisManager(Arr::get($cacheConfig, 'client'), $server);
+                
+                $redisDatabase = new RedisManager(app(), array_get($cacheConfig, 'client'), $server);;
                 $redisPrefix = (getenv('LIMIT_CACHE_PREFIX')) ?: null;
                 $store = new RedisStore($redisDatabase, $redisPrefix);
 
