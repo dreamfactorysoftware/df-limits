@@ -35,7 +35,7 @@ class LimitsTest extends TestCase
         "last_modified_by_id" => 1
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         //$this->createLimits();
