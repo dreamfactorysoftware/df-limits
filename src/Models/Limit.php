@@ -81,6 +81,33 @@ class Limit extends BaseSystemModel
     ];
 
     /**
+     * Reduce a URL endpoint to a stable bucketed form for rate-limit
+     * keying. Without this, record-ID-bearing URLs balloon the keyspace
+     * and let an attacker bypass rate limits by varying the ID.
+     */
+    public static function bucketEndpoint(string $endpoint): string
+    {
+        $segments = explode('/', $endpoint);
+        foreach ($segments as $i => $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            if (ctype_digit($segment)) {
+                $segments[$i] = ':id';
+            } elseif (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $segment)) {
+                $segments[$i] = ':uuid';
+            } elseif (preg_match('/^[0-9a-f]{32,}$/i', $segment)) {
+                $segments[$i] = ':hash';
+            }
+        }
+        $bucketed = implode('/', $segments);
+        if (strlen($bucketed) > 256) {
+            $bucketed = substr($bucketed, 0, 256);
+        }
+        return $bucketed;
+    }
+
+    /**
      * Resolves and builds unique key based on limit type.
      *
      * @param $limitType
@@ -95,6 +122,10 @@ class Limit extends BaseSystemModel
      */
     public function resolveCheckKey($limitType, $userId, $roleId, $serviceId, $endpoint, $verb, $limitPeriod)
     {
+        // Bucket the endpoint so record-ID variance doesn't create
+        // per-request rate-limit buckets that defeat the limit.
+        $endpoint = is_string($endpoint) ? self::bucketEndpoint($endpoint) : $endpoint;
+
         if (isset(self::$limitTypes[$limitType])) {
 
             switch ($limitType) {
